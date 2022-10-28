@@ -180,8 +180,8 @@ REST_FRAMEWORK = {
 # simpleJWT
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("JWT", "Bearer", "jwt", "bearer"),
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=360),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1000),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=360), # seconds=60
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1000), # days=100
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -189,15 +189,15 @@ SIMPLE_JWT = {
 
 # djoster 
 DJOSER = {
-    "LOGIN_FIELD": "email",
     "ACTIVATION_URL": "activate/{uid}/{token}",
     "PASSWORD_RESET_CONFIRM_URL": "reset_password/{uid}/{token}",
     "SEND_ACTIVATION_EMAIL": True,
     "LOGOUT_ON_PASSWORD_CHANGE": True,
     "PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND": True,
-    # "SERIALIZERS": {
-    #     "user_create": "core.serializers.UserCreateSerializer",
-    #     "user": "core.serializers.UserSerializer",
-    #     "user_delete": "djoser.serializers.UserDeleteSerializer",
-    # },
+    "SERIALIZERS": {
+        # "user_create": "core.serializers.UserCreateSerializer",
+        "user": "account.serializers.UserSerializer",
+        "current_user":"account.serializers.CurrentUserSerializer",
+    },
+    "TOKEN_MODEL":None
 }

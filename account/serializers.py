@@ -7,7 +7,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, serializers
 from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
-from djoser.serializers import ActivationSerializer
+from djoser.serializers import (
+    UserSerializer as BaseUserSerializer, 
+    UserCreateSerializer as BaseUserCreateSerializer, 
+    ActivationSerializer as BaseActivationSerializer,
+)
+# from djoser import views ##
 
 
 class TokenObtainPairSerializer(serializers.Serializer):
@@ -78,3 +83,34 @@ class TokenObtainPairSerializer(serializers.Serializer):
             update_last_login(None, self.user)
 
         return data
+
+
+class TokenBlackListSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=True, allow_blank=False)
+    
+    
+class UserSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "username", "first_name", "last_name"]
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = [
+            "id", "username", "email", "first_name", "last_name", 
+            "is_email_verified", "find_me_by_email", "is_active"
+        ]
+        read_only_fields = ["email", "is_email_verified", "is_active", "username"]
+
+
+class UserCreateSerializer(BaseUserCreateSerializer):
+    pass 
+
+class ActivationSerializer(BaseActivationSerializer):
+    pass 
+
+# complete serializers above and test the other endpoint
+# complete serializers after add profile model again.
