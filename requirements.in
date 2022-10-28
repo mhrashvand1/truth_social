@@ -1,20 +1,20 @@
-pyotp
 django
 djangorestframework
 channels
 channels-redis
 django-filter
-djangorestframework-simplejwt
 psycopg2-binary
-Pillow
+django-decouple
 djoser
+djangorestframework-simplejwt
+Pillow
 drf-nested-routers
 requests
+pyotp
 django-cleanup
 drf-yasg
 ##
 django-debug-toolbar
-
 # django-crontab
 # jdatetime
 # gunicorn 
