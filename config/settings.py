@@ -189,15 +189,19 @@ SIMPLE_JWT = {
 
 # djoster 
 DJOSER = {
-    "ACTIVATION_URL": "activate/{uid}/{token}",
-    "PASSWORD_RESET_CONFIRM_URL": "reset_password/{uid}/{token}",
+    "ACTIVATION_URL": "activate/{uid}/{token}/",
+    "PASSWORD_RESET_CONFIRM_URL": "reset_password/{uid}/{token}/",  # dimain?
+    "USERNAME_RESET_CONFIRM_URL": "reset_username/{uid}/{token}/",
     "SEND_ACTIVATION_EMAIL": True,
+    #"SEND_CONFIRMATION_EMAIL":True, 
     "LOGOUT_ON_PASSWORD_CHANGE": True,
     "PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND": True,
     "SERIALIZERS": {
-        # "user_create": "core.serializers.UserCreateSerializer",
+        "user_create": "account.serializers.UserCreateSerializer",
         "user": "account.serializers.UserSerializer",
         "current_user":"account.serializers.CurrentUserSerializer",
+        'password_reset': 'account.serializers.SendEmailResetSerializer',
+        'activation': 'account.serializers.ActivationSerializer',
     },
     "TOKEN_MODEL":None
 }

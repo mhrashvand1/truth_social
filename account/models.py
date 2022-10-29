@@ -45,10 +45,8 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         default=True
     )
     
-    first_name = models.CharField(_("first name"), max_length=150, blank=True)
-    last_name = models.CharField(_("last name"), max_length=150, blank=True) 
+    name = models.CharField(_("name"), max_length=150)
     
-       
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
@@ -78,12 +76,8 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         self.email = self.__class__.objects.normalize_email(self.email)
 
     def get_full_name(self):
-        full_name = "%s %s" % (self.first_name, self.last_name)
+        full_name = "%s" % (self.name)
         return full_name.strip()
-
-    def get_short_name(self):
-        first_name = "%s" % (self.first_name)
-        return first_name
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""

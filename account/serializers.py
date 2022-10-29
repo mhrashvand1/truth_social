@@ -11,8 +11,15 @@ from djoser.serializers import (
     UserSerializer as BaseUserSerializer, 
     UserCreateSerializer as BaseUserCreateSerializer, 
     ActivationSerializer as BaseActivationSerializer,
+    UidAndTokenSerializer,
 )
-# from djoser import views ##
+from django.db import IntegrityError, transaction
+from djoser.conf import settings
+from djoser.compat import get_user_email, get_user_email_field_name
+from django.db.models import Q 
+
+
+User = get_user_model()
 
 
 class TokenObtainPairSerializer(serializers.Serializer):
@@ -31,19 +38,29 @@ class TokenObtainPairSerializer(serializers.Serializer):
     def validate_username_or_email(self, value):
         try:
             email_validator = EmailValidator(message='Invalid email')
-            email_validator(value=value)
-            
-            try:
-                user = get_user_model().objects.get(email=value)
-                return user.username
-            except:
-                raise exceptions.AuthenticationFailed(
-                    _('Entered values ​​are invalid'), 401
-                )     
-        
+            email_validator(value=value) # raise error if value was not email
+            qs = get_user_model().objects.filter(email=value) 
         except ValidationError:
-            return value
+            qs = get_user_model().objects.filter(username=value)
         
+        if not qs.exists():
+            raise exceptions.AuthenticationFailed(
+                _('Entered values ​​are invalid(1)'), 401
+            )   
+            
+        user = qs.first()
+        if not user.is_active:    
+            raise exceptions.AuthenticationFailed(
+                _('User is not active'), 401
+            ) 
+            
+        if not user.is_email_verified: 
+            raise exceptions.AuthenticationFailed(
+                _('Email is not verified'), 401
+            )
+        
+        return str(user.username)   
+
 
     def validate(self, attrs):
         
@@ -60,19 +77,9 @@ class TokenObtainPairSerializer(serializers.Serializer):
         self.user = authenticate(**authenticate_kwargs)
 
         if not self.user:
-           raise exceptions.AuthenticationFailed(
-                _('Entered values ​​are invalid'), 401
-            )   
-           
-        if not self.user.is_active:
-           raise exceptions.AuthenticationFailed(
-                _('User is not active'), 401
-            )        
-            
-        if not self.user.is_email_verified:
             raise exceptions.AuthenticationFailed(
-                _('Email is not verified'), 401
-            )
+                _('Entered values ​​are invalid(2)'), 401
+            )   
 
         refresh = self.get_token(self.user)
         data = dict()
@@ -93,24 +100,90 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = get_user_model()
-        fields = ["id", "username", "first_name", "last_name"]
+        fields = ["id", "username", "name"]
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
-            "id", "username", "email", "first_name", "last_name", 
+            "id", "username", "email", "name", 
             "is_email_verified", "find_me_by_email", "is_active"
         ]
         read_only_fields = ["email", "is_email_verified", "is_active", "username"]
 
 
 class UserCreateSerializer(BaseUserCreateSerializer):
-    pass 
 
-class ActivationSerializer(BaseActivationSerializer):
-    pass 
+    re_password = serializers.CharField(
+        allow_blank=False, required=True, 
+        write_only=True, 
+        style={'input_type': 'password', 'placeholder': 'Password'}
+    )
+    
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "username", "email", "password", "re_password", "name"]
+     
+    def validate(self, attrs):
+        self.fields.pop("re_password", None)
+        re_password = attrs.pop("re_password")
+        attrs = super().validate(attrs)
+        if attrs["password"] == re_password:
+            return attrs
+        else:
+            self.fail("password_mismatch")
+                
+    def perform_create(self, validated_data):
+        with transaction.atomic():
+            user = get_user_model().objects.create_user(**validated_data)
+            if settings.SEND_ACTIVATION_EMAIL:
+                user.is_active = False
+                user.is_email_verified = False
+                user.save(update_fields=["is_active", "is_email_verified"])
+        return user
 
-# complete serializers above and test the other endpoint
-# complete serializers after add profile model again.
+
+class UserFunctionsMixin:
+    def get_user(self, is_active=True, is_email_verified=False):
+        try:
+            user = User._default_manager.get(
+                (Q(is_active=is_active) | Q(is_email_verified=is_email_verified)),
+                **{self.email_field: self.data.get(self.email_field, "")},
+            )
+            if user.has_usable_password():
+                return user
+        except User.DoesNotExist:
+            pass
+        if (
+            settings.PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND
+            or settings.USERNAME_RESET_SHOW_EMAIL_NOT_FOUND
+        ):
+            self.fail("email_not_found")
+
+
+class SendEmailResetSerializer(serializers.Serializer, UserFunctionsMixin):
+    default_error_messages = {
+        "email_not_found": settings.CONSTANTS.messages.EMAIL_NOT_FOUND
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.email_field = get_user_email_field_name(User)
+        self.fields[self.email_field] = serializers.EmailField()
+
+
+
+class ActivationSerializer(UidAndTokenSerializer):
+    
+    default_error_messages = {
+        "stale_token": settings.CONSTANTS.messages.STALE_TOKEN_ERROR
+    }
+    
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if not self.user.is_active or not self.user.is_email_verified: 
+            return attrs
+        raise exceptions.PermissionDenied(self.error_messages["stale_token"])
+ 
