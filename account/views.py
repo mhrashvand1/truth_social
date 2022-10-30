@@ -7,6 +7,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils.translation import gettext_lazy as _
 from djoser.views import UserViewSet as BaseUserViewSet
+from rest_framework.decorators import action
+from pathlib import Path
+from django.core.files import File
+from config.settings import MEDIA_ROOT
 
 
 class TokenObtainPairView(TokenViewBase):
@@ -34,3 +38,18 @@ class UserViewSet(BaseUserViewSet):
     
     def perform_update(self, serializer):
         serializer.save()
+        
+    @action(methods=['get'], detail=False, url_path='delete_avatar', url_name='delete_avatar')
+    def delete_avatar(self, request, *args, **kwargs):
+        user = self.get_instance()
+        profile = user.profile
+        profile.avatar.delete()
+        
+        no_avatar_path = MEDIA_ROOT.as_posix() + '/no_avatar.png'
+        path = Path(no_avatar_path)
+        
+        with path.open(mode='rb') as f:
+            profile.avatar = File(f, name=path.name)
+            profile.save()
+
+        return Response({"detail":"avatar deleted."}, 200)
