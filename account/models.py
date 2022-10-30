@@ -11,6 +11,7 @@ from django.core.validators import MinLengthValidator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from common.models import BaseModel
+from account.utils import get_avatar_path
 
 
 class User(AbstractBaseUser, PermissionsMixin, BaseModel):
@@ -82,3 +83,20 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
         send_mail(subject, message, from_email, [self.email], **kwargs)
+
+
+
+class Profile(models.Model):
+    
+    user = models.OneToOneField(
+        to='User', primary_key=True, db_index=True, 
+        on_delete=models.CASCADE, related_name='profile', 
+        verbose_name=_('user')
+    )
+    avatar = models.ImageField(
+        verbose_name=_('avatar'), default='no_avatart.png',
+        blank=True, upload_to=get_avatar_path
+    )
+    bio = models.CharField(verbose_name=_('bio'), max_length=150, blank=True)
+    date_of_birth = models.DateTimeField(verbose_name=_('date of birth'), null=True)
+    website = models.URLField(verbose_name=_('website'), blank=True)

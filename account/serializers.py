@@ -17,6 +17,7 @@ from django.db import IntegrityError, transaction
 from djoser.conf import settings
 from djoser.compat import get_user_email, get_user_email_field_name
 from django.db.models import Q 
+from account.models import Profile
 
 
 User = get_user_model()
@@ -96,22 +97,53 @@ class TokenBlackListSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=True, allow_blank=False)
     
     
-class UserSerializer(serializers.ModelSerializer):
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ["avatar", "bio", "date_of_birth", "website"]
+  
+    
+class UserSerializer(serializers.ModelSerializer):  
+    profile = ProfileSerializer()
     
     class Meta:
         model = get_user_model()
-        fields = ["id", "username", "name"]
+        fields = ["id", "username", "name", "profile"]
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(required=False)
+
     class Meta:
         model = get_user_model()
         fields = [
-            "id", "username", "email", "name", 
-            "is_email_verified", "find_me_by_email", "is_active"
+            "id", "username", "email", "name", "profile",
+            "is_email_verified", "is_active", "find_me_by_email", 
         ]
-        read_only_fields = ["email", "is_email_verified", "is_active", "username"]
-
+        read_only_fields = [
+            "id", "email", "is_email_verified", 
+            "is_active", "username"
+        ]
+        
+    def update(self, instance, validated_data):
+        try:
+            profile_data = validated_data.pop('profile')
+        except:
+            profile_data = None
+        
+        if profile_data:
+            profile = instance.profile
+            profile.avatar = profile_data.get('avatar', profile.avatar)
+            profile.bio = profile_data.get('bio', profile.bio)
+            profile.date_of_birth = profile_data.get('date_of_birth', profile.date_of_birth)
+            profile.website = profile_data.get('website', profile.website)
+            profile.save()
+        
+        instance.name = validated_data.get('name', instance.name)
+        instance.find_me_by_email = validated_data.get('find_me_by_email', instance.find_me_by_email)
+        instance.save()
+        return instance
+    
 
 class UserCreateSerializer(BaseUserCreateSerializer):
 
@@ -137,6 +169,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     def perform_create(self, validated_data):
         with transaction.atomic():
             user = get_user_model().objects.create_user(**validated_data)
+            Profile.objects.create(user=user)
             if settings.SEND_ACTIVATION_EMAIL:
                 user.is_active = False
                 user.is_email_verified = False
