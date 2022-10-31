@@ -10,11 +10,11 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinLengthValidator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
-from common.models import BaseModel
+from common.models import BaseModel, UUIDBaseModel
 from account.utils import get_avatar_path
 
 
-class User(AbstractBaseUser, PermissionsMixin, BaseModel):
+class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
 
     class Meta:
         verbose_name = _("user")
@@ -86,7 +86,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
 
 
 
-class Profile(models.Model):
+class Profile(BaseModel):
     
     user = models.OneToOneField(
         to='User', primary_key=True, db_index=True, 
@@ -94,7 +94,7 @@ class Profile(models.Model):
         verbose_name=_('user')
     )
     avatar = models.ImageField(
-        verbose_name=_('avatar'), default='no_avatart.png',
+        verbose_name=_('avatar'), default='no_avatar.png',
         blank=True, upload_to=get_avatar_path
     )
     bio = models.CharField(verbose_name=_('bio'), max_length=150, blank=True)

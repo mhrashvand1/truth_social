@@ -14,7 +14,7 @@ router.register("users", UserViewSet)
 
 app_name = 'account'
 urlpatterns = [
-    path('auth/', include(router.urls)),
+    path('', include(router.urls)),
     path('create-token/', TokenObtainPairView.as_view(), name='create-token'),
     path('refresh-token/', TokenRefreshView.as_view(), name='refresh-token'),
     path('verify-token/', TokenVerifyView.as_view(), name='verify-token'),

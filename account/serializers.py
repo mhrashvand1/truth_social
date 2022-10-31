@@ -104,12 +104,12 @@ class ProfileSerializer(serializers.ModelSerializer):
   
     
 class UserSerializer(serializers.ModelSerializer):  
-    profile = ProfileSerializer()
+    profile = ProfileSerializer(read_only=True)
     
     class Meta:
         model = get_user_model()
         fields = ["id", "username", "name", "profile"]
-
+        read_only_fields = ["id", "username", "name", "profile"]
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(required=False)
@@ -178,10 +178,10 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 
 class UserFunctionsMixin:
-    def get_user(self, is_active=True, is_email_verified=False):
+    def get_user(self, query):
         try:
             user = User._default_manager.get(
-                (Q(is_active=is_active) | Q(is_email_verified=is_email_verified)),
+                query,
                 **{self.email_field: self.data.get(self.email_field, "")},
             )
             if user.has_usable_password():

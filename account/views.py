@@ -11,6 +11,16 @@ from rest_framework.decorators import action
 from pathlib import Path
 from django.core.files import File
 from config.settings import MEDIA_ROOT
+from djoser.conf import settings as djoster_settings
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from djoser.compat import get_user_email
+from django.db.models import Q 
+from account.permissions import UserRetrievePermissions, UserUpdatePermissions
+from common.paginations import StandardPagination
+
+
+User = get_user_model()
 
 
 class TokenObtainPairView(TokenViewBase):
@@ -36,8 +46,18 @@ class TokenBlackListView(GenericAPIView):
         
 class UserViewSet(BaseUserViewSet):
     
+    pagination_class = StandardPagination
+    lookup_field = 'username'
+    
     def perform_update(self, serializer):
         serializer.save()
+        
+    def get_permissions(self):
+        if self.action == 'update':
+            self.permission_classes = [UserUpdatePermissions]
+        elif self.action == 'retrieve':
+            self.permission_classes = [UserRetrievePermissions]
+        return super().get_permissions()
         
     @action(methods=['get'], detail=False, url_path='delete_avatar', url_name='delete_avatar')
     def delete_avatar(self, request, *args, **kwargs):
@@ -53,3 +73,50 @@ class UserViewSet(BaseUserViewSet):
             profile.save()
 
         return Response({"detail":"avatar deleted."}, 200)
+    
+    
+    @action(["post"], detail=False)
+    def resend_activation(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        query = Q(is_active=False) | Q(is_email_verified=False)
+        user = serializer.get_user(query=query)
+
+        if not djoster_settings.SEND_ACTIVATION_EMAIL or not user:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        context = {"user": user}
+        to = [get_user_email(user)]
+        djoster_settings.EMAIL.activation(self.request, context).send(to)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
+    @action(["post"], detail=False)
+    def reset_password(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        query = Q(is_active=True) & Q(is_email_verified=True)
+        user = serializer.get_user(query)
+
+        if user:
+            context = {"user": user}
+            to = [get_user_email(user)]
+            djoster_settings.EMAIL.password_reset(self.request, context).send(to)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
+    @action(["post"], detail=False, url_path="reset_{}".format(User.USERNAME_FIELD))
+    def reset_username(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        query = Q(is_active=True) & Q(is_email_verified=True)
+        user = serializer.get_user(query)
+        
+        if user:
+            context = {"user": user}
+            to = [get_user_email(user)]
+            djoster_settings.EMAIL.username_reset(self.request, context).send(to)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

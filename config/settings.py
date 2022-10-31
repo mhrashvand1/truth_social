@@ -203,5 +203,15 @@ DJOSER = {
         'password_reset': 'account.serializers.SendEmailResetSerializer',
         'activation': 'account.serializers.ActivationSerializer',
     },
-    "TOKEN_MODEL":None
+    "EMAIL": {
+        'activation': 'account.email.ActivationEmail',
+        'confirmation': 'account.email.ConfirmationEmail',
+        'password_reset': 'account.email.PasswordResetEmail',
+        'password_changed_confirmation': 'account.email.PasswordChangedConfirmationEmail',
+        'username_changed_confirmation': 'account.email.UsernameChangedConfirmationEmail',
+        'username_reset': 'account.email.UsernameResetEmail',
+    },
+    "TOKEN_MODEL":None,
+    "HIDE_USERS":False
 }
+FRONTEND_DOMAIN = "127.0.0.1"
