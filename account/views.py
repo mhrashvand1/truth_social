@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from pathlib import Path
 from django.core.files import File
 from config.settings import MEDIA_ROOT
-from djoser.conf import settings as djoster_settings
+from djoser.conf import settings as djoser_settings
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from djoser.compat import get_user_email
@@ -82,12 +82,12 @@ class UserViewSet(BaseUserViewSet):
         query = Q(is_active=False) | Q(is_email_verified=False)
         user = serializer.get_user(query=query)
 
-        if not djoster_settings.SEND_ACTIVATION_EMAIL or not user:
+        if not djoser_settings.SEND_ACTIVATION_EMAIL or not user:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         context = {"user": user}
         to = [get_user_email(user)]
-        djoster_settings.EMAIL.activation(self.request, context).send(to)
+        djoser_settings.EMAIL.activation(self.request, context).send(to)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
     
@@ -102,7 +102,7 @@ class UserViewSet(BaseUserViewSet):
         if user:
             context = {"user": user}
             to = [get_user_email(user)]
-            djoster_settings.EMAIL.password_reset(self.request, context).send(to)
+            djoser_settings.EMAIL.password_reset(self.request, context).send(to)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
     
@@ -117,6 +117,6 @@ class UserViewSet(BaseUserViewSet):
         if user:
             context = {"user": user}
             to = [get_user_email(user)]
-            djoster_settings.EMAIL.username_reset(self.request, context).send(to)
+            djoser_settings.EMAIL.username_reset(self.request, context).send(to)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

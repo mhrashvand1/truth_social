@@ -12,12 +12,17 @@ from djoser.serializers import (
     UserCreateSerializer as BaseUserCreateSerializer, 
     ActivationSerializer as BaseActivationSerializer,
     UidAndTokenSerializer,
+    SetUsernameSerializer as BaseSetUsernameSerializer,
+    SetUsernameRetypeSerializer,
+    UsernameResetConfirmSerializer as BaseUsernameResetConfirmSerializer,
+    UsernameResetConfirmRetypeSerializer
 )
 from django.db import IntegrityError, transaction
 from djoser.conf import settings
 from djoser.compat import get_user_email, get_user_email_field_name
 from django.db.models import Q 
 from account.models import Profile
+from account.constants import RESERVED_WORDS
 
 
 User = get_user_model()
@@ -157,6 +162,13 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         model = get_user_model()
         fields = ["id", "username", "email", "password", "re_password", "name"]
      
+    def validate_username(self, value):
+        if value in RESERVED_WORDS:
+            raise serializers.ValidationError(
+                f"{value} is a reserved word."
+            )
+        return value
+     
     def validate(self, attrs):
         self.fields.pop("re_password", None)
         re_password = attrs.pop("re_password")
@@ -220,3 +232,21 @@ class ActivationSerializer(UidAndTokenSerializer):
             return attrs
         raise exceptions.PermissionDenied(self.error_messages["stale_token"])
  
+
+class SetUsernameSerializer(BaseSetUsernameSerializer):
+    
+    def validate_new_username(self, value):
+        if value in RESERVED_WORDS:
+            raise serializers.ValidationError(
+                f"{value} is a reserved word."
+            )
+        return value    
+    
+class UsernameResetConfirmSerializer(BaseUsernameResetConfirmSerializer):
+    
+    def validate_new_username(self, value):
+        if value in RESERVED_WORDS:
+            raise serializers.ValidationError(
+                f"{value} is a reserved word."
+            )
+        return value

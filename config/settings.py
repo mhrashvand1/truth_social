@@ -187,7 +187,7 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": True,
 }
 
-# djoster 
+# djoser 
 DJOSER = {
     "ACTIVATION_URL": "activate/{uid}/{token}/",
     "PASSWORD_RESET_CONFIRM_URL": "reset_password/{uid}/{token}/",  # dimain?
@@ -202,6 +202,8 @@ DJOSER = {
         "current_user":"account.serializers.CurrentUserSerializer",
         'password_reset': 'account.serializers.SendEmailResetSerializer',
         'activation': 'account.serializers.ActivationSerializer',
+        'set_username': 'account.serializers.SetUsernameSerializer',
+        'username_reset_confirm': 'account.serializers.UsernameResetConfirmSerializer',
     },
     "EMAIL": {
         'activation': 'account.email.ActivationEmail',
