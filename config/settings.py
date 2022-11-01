@@ -45,6 +45,12 @@ THIRD_PARTY_PACKAGES = [
 
 PROJECT_APPS = [
     'account.apps.AccountConfig',
+    'activity.apps.ActivityConfig',
+    'chat.apps.ChatConfig',
+    'core.apps.CoreConfig',
+    'timeline.apps.TimelineConfig',
+    'search.apps.SearchConfig',
+    'notification.apps.NotificationConfig',
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_PACKAGES + PROJECT_APPS
@@ -216,4 +222,4 @@ DJOSER = {
     "TOKEN_MODEL":None,
     "HIDE_USERS":False
 }
-FRONTEND_DOMAIN = "127.0.0.1"
+FRONTEND_DOMAIN = "127.0.0.1:8000"
