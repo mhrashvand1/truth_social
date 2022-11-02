@@ -58,8 +58,11 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
     followings = models.ManyToManyField(
         to='User', related_name='followers', through='activity.Follow'
     )
-    blocked_users = models.ManyToManyField(
-        to='User', related_name='+', through='activity.Block'
+    blockings = models.ManyToManyField(
+        to='User', related_name='blockers', through='activity.Block'
+    )
+    bell_enablings = models.ManyToManyField(
+        to='User', related_name='bell_enablers', through='notification.Bell'
     )
     
     is_staff = models.BooleanField(

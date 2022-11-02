@@ -4,7 +4,6 @@ from account.views import UserViewSet
 from account.models import Profile
 from activity.models import OnlineStatus
 
-
 @receiver(signal=user_activated, sender=UserViewSet)
 def verify_email(sender, **kwargs):
     user = kwargs.get('user')
