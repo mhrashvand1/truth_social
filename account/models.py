@@ -5,13 +5,20 @@ from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.models import PermissionsMixin, UserManager
+from django.contrib.auth.models import (
+    PermissionsMixin, 
+    UserManager as BaseUserManager
+)
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinLengthValidator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from common.models import BaseModel, UUIDBaseModel
 from account.utils import get_avatar_path
+
+
+class UserManager(BaseUserManager):  
+    pass
 
 
 class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
@@ -47,6 +54,13 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
     )
     
     name = models.CharField(_("name"), max_length=150)
+    
+    followings = models.ManyToManyField(
+        to='User', related_name='followers', through='activity.Follow'
+    )
+    blocked_users = models.ManyToManyField(
+        to='User', related_name='+', through='activity.Block'
+    )
     
     is_staff = models.BooleanField(
         _("staff status"),
@@ -87,6 +101,11 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
 
 
 class Profile(BaseModel):
+    
+    class Meta:
+        db_table = 'Profile'
+        verbose_name = 'profile'
+        verbose_name_plural = 'profile'
     
     user = models.OneToOneField(
         to='User', primary_key=True, db_index=True, 

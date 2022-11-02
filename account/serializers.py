@@ -181,7 +181,6 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     def perform_create(self, validated_data):
         with transaction.atomic():
             user = get_user_model().objects.create_user(**validated_data)
-            Profile.objects.create(user=user)
             if settings.SEND_ACTIVATION_EMAIL:
                 user.is_active = False
                 user.is_email_verified = False
