@@ -1,5 +1,3 @@
-
-
 class PaginationMixin:
 
     @property
@@ -28,3 +26,26 @@ class PaginationMixin:
         """
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)
+
+
+class FilterMixin:
+    
+    def filter_queryset(self, queryset):
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+        return queryset
+   
+    
+class SerializerMixin:
+    
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs.setdefault('context', self.get_serializer_context())
+        return serializer_class(*args, **kwargs)
+    
+    def get_serializer_context(self):
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self
+        }

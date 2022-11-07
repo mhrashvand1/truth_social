@@ -1,20 +1,8 @@
-from rest_framework.viewsets import ModelViewSet, ViewSet, GenericViewSet
-from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView
-from rest_framework.mixins import (
-    ListModelMixin,
-    CreateModelMixin,
-    RetrieveModelMixin, 
-    DestroyModelMixin,
-    UpdateModelMixin
-)
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from common.serializers import CommonUserSerializer
-from common.mixins import PaginationMixin
-from common.paginations import StandardPagination
 from activity.serializers import (
     FollowSerializer,
     UnFollowSerializer,
@@ -22,15 +10,26 @@ from activity.serializers import (
     UnBlockSerializer
 )
 from notification.models import Notification
-
+from common.generics import CustomGenericViewSet
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 User = get_user_model()
 
-
-class FollowViewSet(PaginationMixin, ViewSet):  
-    
-    pagination_class = StandardPagination
-    
+class FollowViewSet(CustomGenericViewSet):  
+        
+    def get_permissions(self):
+        if self.action in ['followers', 'followings']:
+            self.permission_classes = [AllowAny]
+        elif self.action in ['follow', 'unfollow']:
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
+         
+    @property
+    def search_fields(self):
+        if self.action in ['followers', 'followings']:
+            return ['name', 'username']
+        return []
+     
     def get_serializer_class(self):
         if self.action == 'follow':
             return FollowSerializer
@@ -39,23 +38,11 @@ class FollowViewSet(PaginationMixin, ViewSet):
         else:
             return CommonUserSerializer
     
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault('context', self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
-    
-    def get_serializer_context(self):
-        return {
-            'request': self.request,
-            'format': self.format_kwarg,
-            'view': self
-        }
-    
     @action(methods=['get'], detail=False)
     def followers(self, request, *args, **kwargs):
         username = kwargs.get('username')
         user = get_object_or_404(User, username=username)
-        queryset = user.followers.all()
+        queryset = self.filter_queryset(user.followers.all())
         
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -69,7 +56,7 @@ class FollowViewSet(PaginationMixin, ViewSet):
     def followings(self, request, *args, **kwargs):
         username = kwargs.get('username')
         user = get_object_or_404(User, username=username)
-        queryset = user.followings.all()
+        queryset = self.filter_queryset(user.followings.all())
         
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -80,7 +67,7 @@ class FollowViewSet(PaginationMixin, ViewSet):
         return Response(serializer.data)  
     
     @action(methods=['post'], detail=False)
-    def follow(self, request, *args, **kwargs):
+    def follow(self, request, *args, **kwargs):  #Notif
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = serializer.perform_follow()
@@ -95,7 +82,7 @@ class FollowViewSet(PaginationMixin, ViewSet):
   
        
     
-class BlockViewSet(ViewSet):
+class BlockViewSet(CustomGenericViewSet):
     
     @action(methods=['post'], detail=False, url_name='block', url_path='block')
     def block(self, request, *args, **kwargs):
