@@ -25,3 +25,10 @@ RETWEET_PRIORITY = 3
 # TODO
 # Later we create a section named `settings` and user determine which priority 
 # should be set for notifes
+
+# Messages 
+FOLLOW_MESSAGE = "type=follow&actor={}"
+LIKE_MESSAGE = "type=like&actor={}&tweet_id={}"
+MENTION_MESSAGE = "type=mention&actor={}&tweet_id={}&mention_id={}&mention_text={}"
+RETWEET_MESSAGE = "type=retweet&actor={}tweet_id={}&retweet_id={}&retweet_text={}"
+NEW_TWEET_MESSAGE = "type=new_tweet&actor={}&tweet_id={}&tweet_text={}"

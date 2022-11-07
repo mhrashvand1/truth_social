@@ -7,8 +7,15 @@ from common.swaggers import schema_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('account/', include('account.urls', namespace='account')),
     
+    path('account/', include('account.urls', namespace='account')),
+    path('core/', include('core.urls')),
+    path('search/', include('search.urls')),
+    path('timeline/', include('timeline.urls')),
+    path('chat/', include('chat.urls')),
+    path('activity/', include('activity.urls')),
+    path('notification/', include('notification.urls')),
+
     # swagger urls
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

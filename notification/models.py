@@ -6,11 +6,6 @@ from django.utils import timezone
 from notification.constants import (
     PRIORITIES, 
     NOTIF_TYPES, 
-    TRUTH_SOCIAL_MESSAGE_PRIORITY, 
-    FOLLOW_PRIORITY,
-    LIKE_PRIORITY,
-    MENTION_PRIORITY,
-    RETWEET_PRIORITY
 )
 
 
@@ -58,15 +53,16 @@ class Notification(BaseModel):
         max_length=300, 
         verbose_name=_('message')
     )
-    has_read = models.BooleanField(
-        verbose_name=_('has read'),
-        default=False
-    )
     priority = models.IntegerField(
         verbose_name=_('priority'),
         choices=PRIORITIES, 
     )
     
+    has_read = models.BooleanField(
+        verbose_name=_('has read'),
+        default=False
+    )
+
     class Meta:
         db_table = 'Notification'
         verbose_name = _('notification')
