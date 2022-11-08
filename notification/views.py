@@ -82,7 +82,6 @@ class BellViewSet(CustomGenericViewSet):
 
 class NotificationViewSet(
     ListModelMixin,
-    RetrieveModelMixin,
     GenericViewSet
 ):
     permission_classes = [IsAuthenticated]
@@ -93,3 +92,9 @@ class NotificationViewSet(
     def get_queryset(self):
         return Notification.objects.filter(to=self.request.user)
     
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.has_read = True
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)

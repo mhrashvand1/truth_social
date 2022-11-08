@@ -6,6 +6,8 @@ from rest_framework import status
 from activity.models import Follow
 from account.models import User
 
+# notifications also test here
+
 class TestFollow(BaseTest):
     
     def test_get_followers_and_followings(self):

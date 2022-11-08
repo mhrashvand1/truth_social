@@ -26,6 +26,16 @@ class FollowSerializer(serializers.Serializer):
         
         if current_user.followings.filter(username=target_user.username).exists():
             raise ValidationError(f'User with username {value} has already followed.')
+        
+        if current_user.blockings.filter(username=target_user.username).exists():
+            raise ValidationError(
+                f'You can not follow user with username {value} , bacause you have blocked it.'
+            )
+            
+        if current_user.blockers.filter(username=target_user.username).exists():
+            raise ValidationError(
+                f'You can not follow user with username {value} , because you are blocked.'
+            )
              
         return target_user
       

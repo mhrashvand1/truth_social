@@ -16,6 +16,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.generics import GenericAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from activity import signals
 
 User = get_user_model()
 
@@ -76,10 +77,16 @@ class FollowViewSet(CustomGenericViewSet):
         return Response({"followed_you":result})
            
     @action(methods=['post'], detail=False)
-    def follow(self, request, *args, **kwargs):  #Notif
+    def follow(self, request, *args, **kwargs): 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = serializer.perform_follow()
+        signals.follow_user.send(
+            sender=self.__class__, 
+            current_user=request.user,
+            target_user=serializer.validated_data['username'],
+            request=request
+        )
         return Response({"detail":message}, 200)
  
     @action(methods=['post'], detail=False)
@@ -87,6 +94,12 @@ class FollowViewSet(CustomGenericViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = serializer.perform_unfollow()
+        signals.unfollow_user.send(
+            sender=self.__class__, 
+            current_user=request.user,
+            target_user=serializer.validated_data['username'],
+            request=request
+        )
         return Response({"detail":message}, 200)  
   
        
@@ -112,6 +125,12 @@ class BlockViewSet(CustomGenericViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = serializer.perform_block()
+        signals.block_user.send(
+            sender=self.__class__,
+            current_user=request.user,
+            target_user=serializer.validated_data['username'],
+            request=request
+        )
         return Response({"detail":message}, 200)
  
     @action(methods=['post'], detail=False, url_name='unblock', url_path='unblock')
