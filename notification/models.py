@@ -56,8 +56,7 @@ class Notification(BaseModel):
     priority = models.IntegerField(
         verbose_name=_('priority'),
         choices=PRIORITIES, 
-    )
-    
+    ) 
     has_read = models.BooleanField(
         verbose_name=_('has read'),
         default=False

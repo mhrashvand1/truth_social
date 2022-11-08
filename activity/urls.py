@@ -31,5 +31,16 @@ urlpatterns = [
         FollowViewSet.as_view({"get":"followings"}),
         name='user-followings'
     ),
+    path(
+        'follow/users/<str:username>/followed_by/',
+        FollowViewSet.as_view({"get":"followed_by"}),
+        name='user-followed_by'
+    ),
+    path(
+        'follow/users/<str:username>/followed_you/',
+        FollowViewSet.as_view({"get":"followed_you"}),
+        name='user-followed_you'
+    )
+
 ]
 urlpatterns += block_router.urls

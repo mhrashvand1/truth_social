@@ -21,6 +21,9 @@ class CommonUserSerializer(serializers.Serializer):
     
     def get_follows_you(self, obj):
         current_user = self.context['request'].user
-        if current_user in obj.followings.all():
+        if not current_user.is_authenticated:
+            return None
+        elif obj.followings.filter(username=current_user.username).exists():
             return True
-        return False
+        else:
+            return False

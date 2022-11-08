@@ -27,6 +27,7 @@ RETWEET_PRIORITY = 3
 # should be set for notifes
 
 # Messages 
+TRUTH_SOCIAL_MESSAGE = "type=truth_social_message&text={}&link={}"
 FOLLOW_MESSAGE = "type=follow&actor={}"
 LIKE_MESSAGE = "type=like&actor={}&tweet_id={}"
 MENTION_MESSAGE = "type=mention&actor={}&tweet_id={}&mention_id={}&mention_text={}"
