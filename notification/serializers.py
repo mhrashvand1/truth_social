@@ -3,8 +3,10 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError, NotFound
 from notification.models import Bell, Notification
-from notification.constants import PRIORITIES
+from notification.constants import PRIORITIES, NOTIF_TYPES
 from activity.models import Block
+from common.utils import querystring_to_dict
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -160,9 +162,36 @@ class BellStatusSerializer(serializers.Serializer):
             result['priority'] = None
         return result
     
+    
 class NotificationSerializer(serializers.ModelSerializer):
+    to = serializers.CharField(source='to.username')
+    notif_type = serializers.SerializerMethodField()
+    message = serializers.SerializerMethodField()
     
     class Meta:
         model = Notification
         fields = ['id', 'to', 'notif_type', 'message', 'priority', 'has_read']
         
+        
+    def get_notif_type(self, obj):
+        return dict(NOTIF_TYPES)[obj.notif_type]
+    
+    def get_message(self, obj):
+        request = self.context['request']
+        result = dict()
+        dict_message = querystring_to_dict(obj.message)
+        actor_username = dict_message['actor'][0]
+        try:
+            actor = User.objects.get(username=actor_username)
+            result['actor'] = {
+                "username":actor_username,
+                "avatar":request.build_absolute_uri(actor.profile.avatar.url),
+                'link': request.build_absolute_uri(
+                    reverse('account:user-detail', kwargs={'username':actor_username})
+                )
+            }
+        except:
+            result['actor'] = None
+                
+        result['type'] = dict_message['type'][0]
+        return result

@@ -8,7 +8,7 @@ class CommonUserSerializer(serializers.Serializer):
     username = serializers.CharField(read_only=True)
     bio = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
-    follows_you = serializers.SerializerMethodField()
+    followed_you = serializers.SerializerMethodField()
     
     def get_bio(self, obj):
         return str(obj.profile.bio)
@@ -19,7 +19,7 @@ class CommonUserSerializer(serializers.Serializer):
         uri = request.build_absolute_uri(url)
         return uri
     
-    def get_follows_you(self, obj):
+    def get_followed_you(self, obj):
         current_user = self.context['request'].user
         if not current_user.is_authenticated:
             return None

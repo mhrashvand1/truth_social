@@ -65,8 +65,8 @@ class UnFollowSerializer(serializers.Serializer):
         if current_user == target_user:
             raise ValidationError('Can not follow/unfollow yourself.')
         
-        if target_user not in current_user.followings.all(): ##
-            raise ValidationError(f'User with username {value} is not followed.')
+        if not current_user.followings.filter(username=target_user.username).exists():
+            raise ValidationError(f'User with username {value} is not followed.')  
             
         return target_user
       
@@ -100,9 +100,9 @@ class BlockSerializer(serializers.Serializer):
         if current_user == target_user:
             raise ValidationError('Can not block/unblock yourself.')
         
-        if target_user in current_user.blockings.all(): ##
+        if current_user.blockings.filter(username=target_user.username).exists():
             raise ValidationError(f'User with username {value} has already blocked.')
-            
+
         return target_user
       
     def perform_block(self):
@@ -131,9 +131,9 @@ class UnBlockSerializer(serializers.Serializer):
         if current_user == target_user:
             raise ValidationError('Can not block/unblock yourself.')
         
-        if target_user not in current_user.blockings.all(): ##
+        if not current_user.blockings.filter(username=target_user.username).exists():
             raise ValidationError(f'User with username {value} is not blocked.')
-            
+         
         return target_user
       
     def perform_unblock(self):
@@ -167,5 +167,28 @@ class IsBlockedSerializer(serializers.Serializer):
             result['is_blocked'] = True
         else:
             result['is_blocked'] = False
+            
+        return result
+    
+    
+class BlockedYouSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        max_length=150, validators=[UnicodeUsernameValidator], allow_blank=False, required=True
+    )
+    
+    def validate_username(self, value):
+        qs = User.objects.filter(username=value)
+        if not qs.exists():
+            raise NotFound()
+        return qs.first()
+    
+    def blocked_you(self):
+        current_user = self.context['request'].user
+        target_user = self.validated_data['username']
+        result = dict()
+        if current_user.blockers.filter(username=target_user.username).exists():
+            result['blocked_you'] = True
+        else:
+            result['blocked_you'] = False
             
         return result

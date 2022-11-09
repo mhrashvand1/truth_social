@@ -23,7 +23,9 @@ from djoser.compat import get_user_email, get_user_email_field_name
 from django.db.models import Q 
 from account.models import Profile
 from account.constants import RESERVED_WORDS
-
+from random import sample
+from django.urls import reverse
+from notification.models import Bell
 
 User = get_user_model()
 
@@ -110,11 +112,99 @@ class ProfileSerializer(serializers.ModelSerializer):
     
 class UserSerializer(serializers.ModelSerializer):  
     profile = ProfileSerializer(read_only=True)
+    is_followed = serializers.SerializerMethodField()
+    followed_you = serializers.SerializerMethodField()
+    followed_by = serializers.SerializerMethodField()
+    is_blocked = serializers.SerializerMethodField()
+    blocked_you = serializers.SerializerMethodField()
+    bell_status = serializers.SerializerMethodField()
     
     class Meta:
         model = get_user_model()
-        fields = ["id", "username", "name", "profile"]
-        read_only_fields = ["id", "username", "name", "profile"]
+        fields = [
+            "id", "username", "name", "profile", 
+            "is_followed", "followed_you", "followed_by", "is_blocked",
+            "blocked_you", "bell_status"
+        ]
+        read_only_fields = [
+            "id", "username", "name", "profile", 
+            "is_followed", "followed_you", "followed_by", "is_blocked",
+            "blocked_you", "bell_status"
+        ]
+
+    def get_is_followed(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        if obj.followers.filter(username=current_user.username).exists():
+            return True
+        return False
+
+    def get_followed_you(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        if obj.followings.filter(username=current_user.username).exists():
+            return True
+        return False
+
+    def get_followed_by(self, obj):
+        request = self.context['request']
+        current_user = request.user
+        if not current_user.is_authenticated:
+            return None
+        qs = obj.followers.filter(followers=current_user)
+        count = qs.count()
+        samples = qs if count<3 else sample(set(qs), k=2)
+        result = dict()
+        result['count'] = count
+        result['samples'] = dict()
+        n = 1
+        for sample in samples:
+            result['samples'][f'{n}'] = {
+                "username":sample.username, 
+                "name":sample.name, 
+                "avatar":request.build_absolute_uri(sample.profile.avatar.url)
+            }
+            n += 1
+        result['others_you_know_count'] = count - len(samples)
+        result['followed_by_url'] = request.build_absolute_uri(
+            reverse(
+                'activity:user-followed_by', kwargs={"username":obj.username}
+            )
+        )
+        return result
+    
+    def get_is_blocked(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        if current_user.blockings.filter(username=obj.username).exists():
+            return True
+        return False 
+        
+    def get_blocked_you(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        if current_user.blockers.filter(username=obj.username).exists():
+            return True
+        return False 
+
+    def get_bell_status(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        result = dict()
+        qs = Bell.objects.filter(from_user=current_user, to_user=obj)
+        if qs.exists():
+            result['status'] = 'enable'
+            result['priority'] = qs.first().priority
+        else:
+            result['status'] = 'disable'
+            result['priority'] = None
+        return result
+
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(required=False)

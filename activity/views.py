@@ -8,7 +8,8 @@ from activity.serializers import (
     UnFollowSerializer,
     BlockSerializer,
     UnBlockSerializer,
-    IsBlockedSerializer
+    IsBlockedSerializer, 
+    BlockedYouSerializer
 )
 from notification.models import Notification
 from common.generics import CustomGenericViewSet
@@ -17,6 +18,7 @@ from rest_framework.generics import GenericAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from activity import signals
+from activity.throttles import FollowThrottle
 
 User = get_user_model()
 
@@ -24,6 +26,11 @@ class FollowViewSet(CustomGenericViewSet):
     
     filter_backends = [SearchFilter]        
     search_fields = ['name', 'username']
+
+    def get_throttles(self):
+        if self.action == 'follow':
+            self.throttle_classes = [FollowThrottle]
+        return super().get_throttles()
     
     def get_permissions(self):
         if self.action in ['followers', 'followings']:
@@ -75,6 +82,17 @@ class FollowViewSet(CustomGenericViewSet):
         if qs.exists():
             result = True
         return Response({"followed_you":result})
+      
+    @action(methods=['get'], detail=False)
+    def is_followed(self, request, *args, **kwargs):
+        username = kwargs.get('username')
+        user = get_object_or_404(User, username=username)
+        current_user = request.user
+        result = False
+        qs = user.followers.filter(username=current_user.username)
+        if qs.exists():
+            result = True
+        return Response({"is_followed":result})
            
     @action(methods=['post'], detail=False)
     def follow(self, request, *args, **kwargs): 
@@ -117,6 +135,8 @@ class BlockViewSet(CustomGenericViewSet):
             return UnBlockSerializer
         elif self.action == 'is_blocked':
             return IsBlockedSerializer
+        elif self.action == 'blocked_you':
+            return BlockedYouSerializer
         else:
             return CommonUserSerializer
             
@@ -152,4 +172,11 @@ class BlockViewSet(CustomGenericViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = serializer.is_blocked()
+        return Response(result, 200)
+    
+    @action(methods=['post'], detail=False, url_path='blocked_you', url_name='blocked_you')
+    def blocked_you(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.blocked_you()
         return Response(result, 200)
