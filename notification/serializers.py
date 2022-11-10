@@ -177,21 +177,67 @@ class NotificationSerializer(serializers.ModelSerializer):
         return dict(NOTIF_TYPES)[obj.notif_type]
     
     def get_message(self, obj):
-        request = self.context['request']
+        message = querystring_to_dict(obj.message)  
+        message_type = message['type'][0]
+        handler = getattr(self, f'{message_type}_message_handler')
+        return handler(message)
+    
+    def follow_message_handler(self, message):
         result = dict()
-        dict_message = querystring_to_dict(obj.message)
-        actor_username = dict_message['actor'][0]
-        try:
-            actor = User.objects.get(username=actor_username)
-            result['actor'] = {
-                "username":actor_username,
-                "avatar":request.build_absolute_uri(actor.profile.avatar.url),
-                'link': request.build_absolute_uri(
-                    reverse('account:user-detail', kwargs={'username':actor_username})
-                )
-            }
-        except:
-            result['actor'] = None
-                
-        result['type'] = dict_message['type'][0]
+        result['type'] = message['type'][0]
+        actor_username = message['actor'][0]
+        result['actor'] = self.get_actor_info(username=actor_username) 
         return result
+    
+    def like_message_handler(self, message):
+        result = dict()
+        result['type'] = message['type'][0]
+        actor_username = message['actor'][0]
+        result['actor'] = self.get_actor_info(username=actor_username)
+        ... 
+        return result
+    
+    def mention_message_handler(self, message):
+        result = dict()
+        result['type'] = message['type'][0]
+        actor_username = message['actor'][0]
+        result['actor'] = self.get_actor_info(username=actor_username)
+        ... 
+        return result
+        
+    def retweet_message_handler(self, message):
+        result = dict()
+        result['type'] = message['type'][0]
+        actor_username = message['actor'][0]
+        result['actor'] = self.get_actor_info(username=actor_username)
+        ... 
+        return result
+    
+    def new_tweet_message_handler(self, message):
+        result = dict()
+        result['type'] = message['type'][0]
+        actor_username = message['actor'][0]
+        result['actor'] = self.get_actor_info(username=actor_username)
+        ... 
+        return result
+    
+    def truth_social_message_handler(self, message):
+        pass
+    
+    def get_actor_info(self, username):
+        build_absolute_uri = self.context['request'].build_absolute_uri
+        result = dict()
+        try:
+            actor = User.objects.get(username=username)
+            result['name'] = actor.name
+            result['avatar'] = build_absolute_uri(actor.profile.avatar.url)
+            result['url'] = build_absolute_uri(
+                reverse('account:user-detail', kwargs={"username":username})
+            )
+        except User.DoesNotExist:
+            result = None
+        
+        return result
+    
+    def get_tweet_info(self, id):
+        pass

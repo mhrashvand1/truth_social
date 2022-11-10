@@ -5,6 +5,7 @@ from notification.models import Notification, Bell
 from django.db.models import Q
 from notification.constants import FOLLOW_MESSAGE, FOLLOW_PRIORITY, NOTIF_TYPES
 from common.utils import get_reverse_dict
+from django.urls import reverse
 
 
 @receiver(signal=signals.follow_user, sender=FollowViewSet)
