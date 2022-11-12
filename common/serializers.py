@@ -18,12 +18,19 @@ class CommonUserSerializer(serializers.Serializer):
         url = obj.profile.avatar.url
         uri = request.build_absolute_uri(url)
         return uri
+   
+    def get_is_followed(self, obj):
+        current_user = self.context['request'].user
+        if not current_user.is_authenticated:
+            return None
+        if obj.followers.filter(username=current_user.username).exists():
+            return True
+        return False
     
     def get_followed_you(self, obj):
         current_user = self.context['request'].user
         if not current_user.is_authenticated:
             return None
-        elif obj.followings.filter(username=current_user.username).exists():
+        if obj.followings.filter(username=current_user.username).exists():
             return True
-        else:
-            return False
+        return False

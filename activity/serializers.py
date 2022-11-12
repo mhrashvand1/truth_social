@@ -159,7 +159,7 @@ class IsBlockedSerializer(serializers.Serializer):
             raise NotFound()
         return qs.first()
     
-    def is_bloked(self):
+    def is_blocked(self):
         current_user = self.context['request'].user
         target_user = self.validated_data['username']
         result = dict()

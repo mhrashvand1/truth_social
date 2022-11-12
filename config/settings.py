@@ -229,3 +229,7 @@ DJOSER = {
     "HIDE_USERS":False
 }
 FRONTEND_DOMAIN = "127.0.0.1:8000"
+
+
+# SESSION 
+SESSION_ENGINE = "django.contrib.sessions.backends.db"

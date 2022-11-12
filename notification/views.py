@@ -48,14 +48,14 @@ class BellViewSet(CustomGenericViewSet):
     @action(methods=['post'], detail=False, url_path='enable_bell', url_name='enable_bell')
     def enable_bell(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_raise_exception=True)
+        serializer.is_valid(raise_exception=True)
         message = serializer.perform_bell_enable()
         return Response(message, 200)
     
     @action(methods=['post'], detail=False, url_path='disable_bell', url_name='disable_bell')
     def disable_bell(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_raise_exception=True)
+        serializer.is_valid(raise_exception=True)
         message = serializer.perform_bell_disable()
         return Response(message, 200)
 

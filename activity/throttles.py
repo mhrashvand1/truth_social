@@ -3,7 +3,7 @@ from common.throttles import CustomBaseThrottle
 class FollowThrottle(CustomBaseThrottle):
         
     def __init__(self):
-        self.num_requests = 15
+        self.num_requests = 60
         self.duration = 3600  # seconds
     
     def get_cache_key(self, request, view):

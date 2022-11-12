@@ -159,7 +159,7 @@ class BlockViewSet(CustomGenericViewSet):
         serializer.is_valid(raise_exception=True)
         message = serializer.perform_unblock()
         return Response({"detail":message}, 200)
-  
+
     @action(methods=['get'], detail=False, url_name='blockings', url_path='blockings')
     def blockings(self, request, *args, **kwargs):
         user = request.user
