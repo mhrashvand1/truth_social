@@ -8,10 +8,20 @@ asgiref==3.5.2
     # via
     #   channels
     #   channels-redis
+    #   daphne
     #   django
     #   djoser
 async-timeout==4.0.2
     # via redis
+attrs==22.1.0
+    # via
+    #   automat
+    #   service-identity
+    #   twisted
+autobahn==22.7.1
+    # via daphne
+automat==22.10.0
+    # via twisted
 certifi==2022.9.24
     # via requests
 cffi==1.15.1
@@ -20,10 +30,13 @@ channels==4.0.0
     # via
     #   -r requirements.in
     #   channels-redis
+    #   django-channels-jwt-auth-middleware
 channels-redis==4.0.0
     # via -r requirements.in
 charset-normalizer==2.1.1
     # via requests
+constantly==15.1.0
+    # via twisted
 coreapi==2.3.3
     # via
     #   djoser
@@ -33,7 +46,13 @@ coreschema==0.0.4
     #   coreapi
     #   drf-yasg
 cryptography==38.0.1
-    # via social-auth-core
+    # via
+    #   autobahn
+    #   pyopenssl
+    #   service-identity
+    #   social-auth-core
+daphne==4.0.0
+    # via -r requirements.in
 defusedxml==0.7.1
     # via
     #   python3-openid
@@ -44,12 +63,15 @@ django==4.1.2
     # via
     #   -r requirements.in
     #   channels
+    #   django-channels-jwt-auth-middleware
     #   django-debug-toolbar
     #   django-filter
     #   djangorestframework
     #   djangorestframework-simplejwt
     #   drf-nested-routers
     #   drf-yasg
+django-channels-jwt-auth-middleware==1.0.0
+    # via -r requirements.in
 django-cleanup==6.0.0
     # via -r requirements.in
 django-debug-toolbar==3.7.0
@@ -76,8 +98,17 @@ drf-nested-routers==0.93.4
     # via -r requirements.in
 drf-yasg==1.21.4
     # via -r requirements.in
+hyperlink==21.0.0
+    # via
+    #   autobahn
+    #   twisted
 idna==3.4
-    # via requests
+    # via
+    #   hyperlink
+    #   requests
+    #   twisted
+incremental==22.10.0
+    # via twisted
 inflection==0.5.1
     # via drf-yasg
 itypes==1.2.0
@@ -100,12 +131,21 @@ pillow==9.2.0
     # via -r requirements.in
 psycopg2-binary==2.9.4
     # via -r requirements.in
+pyasn1==0.4.8
+    # via
+    #   pyasn1-modules
+    #   service-identity
+pyasn1-modules==0.2.8
+    # via service-identity
 pycparser==2.21
     # via cffi
 pyjwt==2.6.0
     # via
+    #   django-channels-jwt-auth-middleware
     #   djangorestframework-simplejwt
     #   social-auth-core
+pyopenssl==22.1.0
+    # via twisted
 pyotp==2.7.0
     # via -r requirements.in
 pyparsing==3.0.9
@@ -130,8 +170,13 @@ ruamel-yaml==0.17.21
     # via drf-yasg
 ruamel-yaml-clib==0.2.7
     # via ruamel-yaml
+service-identity==21.1.0
+    # via twisted
 six==1.16.0
-    # via social-auth-app-django
+    # via
+    #   automat
+    #   service-identity
+    #   social-auth-app-django
 social-auth-app-django==4.0.0
     # via djoser
 social-auth-core==4.3.0
@@ -140,6 +185,12 @@ sqlparse==0.4.3
     # via
     #   django
     #   django-debug-toolbar
+twisted[tls]==22.10.0
+    # via daphne
+txaio==22.2.1
+    # via autobahn
+typing-extensions==4.4.0
+    # via twisted
 uritemplate==4.1.1
     # via
     #   coreapi
@@ -148,3 +199,8 @@ urllib3==1.26.12
     # via requests
 wrapt==1.14.1
     # via deprecated
+zope-interface==5.5.1
+    # via twisted
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

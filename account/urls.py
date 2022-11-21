@@ -5,9 +5,6 @@ TokenRefreshView, TokenVerifyView,
 )
 from rest_framework.routers import DefaultRouter
 
-# Can be do:
-# nested routers
-# extend routers
 
 router = DefaultRouter()
 router.register("users", UserViewSet)

@@ -34,6 +34,7 @@ DEFAULT_APPS = [
 
 THIRD_PARTY_PACKAGES = [
     'channels',
+    'daphne',
     "django_filters",
     "rest_framework",
     "djoser",
@@ -53,7 +54,7 @@ PROJECT_APPS = [
     'notification.apps.NotificationConfig',
 ]
 
-INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_PACKAGES + PROJECT_APPS
+INSTALLED_APPS = THIRD_PARTY_PACKAGES + DEFAULT_APPS + PROJECT_APPS
 
 
 MIDDLEWARE = [
@@ -134,7 +135,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 
@@ -159,21 +160,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # channels
-# ASGI_APPLICATION = 'config.asgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [
-#                 (
-#                     config("REDIS_HOST", default="127.0.0.1"),
-#                     config("REDIS_PORT", default=6379)
-#                 )
-#             ],
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
+LOGIN_REDIRECT_URL = 'http://127.0.0.1:8000/chat'
+LOGOUT_REDIRECT_URL = 'http://127.0.0.1:8000/chat/login/'
 
 
 # drf

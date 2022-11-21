@@ -31,7 +31,7 @@ class Bell(BaseModel):
     
     class Meta:
         db_table = 'Bell'
-        verbose_name = _('bells')
+        verbose_name = _('bell')
         verbose_name_plural = _('bells')
         unique_together = ('from_user', 'to_user')
            

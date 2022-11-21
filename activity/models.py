@@ -59,7 +59,6 @@ class OnlineStatus(models.Model):
         verbose_name=_('user')
     ) 
     status = models.IntegerField(choices=status_choices, default=1)
-    last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'OnlineStatus'

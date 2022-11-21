@@ -2,6 +2,7 @@ django
 djangorestframework
 channels
 channels-redis
+# django-channels-jwt-auth-middleware
 django-filter
 psycopg2-binary
 django-decouple
@@ -13,6 +14,7 @@ requests
 pyotp
 django-cleanup
 drf-yasg
+daphne
 ##
 django-debug-toolbar
 # django-crontab

@@ -1,0 +1,87 @@
+{% extends 'chat/base.html' %}
+{% load static %}
+
+{% block aside%}
+<aside>
+    <header>
+        <input type="text" placeholder="username">
+    </header>
+
+    <ul id="contacts">
+        
+        <li>
+	        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
+	        <div>
+		        <h2 class="contact-name-aside">Prénom Nom</h2>
+		        <h3>
+		        	<span class="new-message-count">12</span> new message
+		        </h3>
+	        </div>
+       </li>
+
+	   <li>
+		    <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
+		    <div>
+		    	<h2 class="contact-name-aside">Prénom Nom</h2>
+		    	<h3>
+		    		<span class="new-message-count">12</span> new message
+		    	</h3>
+		    </div>
+       </li>
+	   
+   </ul>
+
+</aside>
+{% endblock aside %}
+
+
+{% block main %}
+<main>
+
+	<header>
+		<img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
+		<div>
+			<h2 class="contact-name-main">Prénom Nom</h2>
+			<h3 class="online-status">online</h3>
+		</div>
+	</header>
+
+	<ul id="chat">
+		
+		<li class="you">
+			<div class="entete">
+				<span class="status green"></span>
+				<h2>Vincent</h2>
+				<h3>10:12AM, Today</h3>
+			</div>
+			<div class="triangle"></div>
+			<div class="message">
+				Hello
+			</div>
+		</li>
+		<li class="me">
+			<div class="entete">
+				<h3>10:12AM, Today</h3>
+				<h2>Vincent</h2>
+				<span class="status blue"></span>
+			</div>
+			<div class="triangle"></div>
+			<div class="message">
+				Kir khar
+			</div>
+		</li>
+
+	</ul>
+
+	<footer>
+		<textarea id="msg-input" placeholder="Type your message" maxlength="1000"></textarea>
+		<button id="msg-submit" type="submit">Send</button>   
+	</footer>
+
+ </main>
+{% endblock main %}
+
+
+{% block scripts %}
+<script async defer src="{% static 'chat/chat.js' %}"></script>
+{% endblock scripts %}
