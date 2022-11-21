@@ -4,12 +4,12 @@
 {% block aside%}
 <aside>
     <header>
-        <input type="text" placeholder="username">
+        <input type="text" placeholder="username" id='search-username'>
     </header>
 
     <ul id="contacts">
         
-        <li>
+        {% comment %} <li>
 	        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
 	        <div>
 		        <h2 class="contact-name-aside">Prénom Nom</h2>
@@ -27,7 +27,7 @@
 		    		<span class="new-message-count">12</span> new message
 		    	</h3>
 		    </div>
-       </li>
+       </li> {% endcomment %}
 	   
    </ul>
 
@@ -39,16 +39,16 @@
 <main>
 
 	<header>
-		<img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
+		{% comment %} <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
 		<div>
 			<h2 class="contact-name-main">Prénom Nom</h2>
 			<h3 class="online-status">online</h3>
-		</div>
+		</div> {% endcomment %}
 	</header>
 
 	<ul id="chat">
 		
-		<li class="you">
+		{% comment %} <li class="you">
 			<div class="entete">
 				<span class="status green"></span>
 				<h2>Vincent</h2>
@@ -69,13 +69,13 @@
 			<div class="message">
 				Kir khar
 			</div>
-		</li>
+		</li> {% endcomment %}
 
 	</ul>
 
 	<footer>
-		<textarea id="msg-input" placeholder="Type your message" maxlength="1000"></textarea>
-		<button id="msg-submit" type="submit">Send</button>   
+		{% comment %} <textarea id="msg-input" placeholder="Type your message" maxlength="1000"></textarea>
+		<button id="msg-submit" type="submit">Send</button> {% endcomment %}
 	</footer>
 
  </main>

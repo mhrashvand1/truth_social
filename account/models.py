@@ -7,7 +7,6 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import (
     PermissionsMixin, 
-    UserManager as BaseUserManager
 )
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinLengthValidator
@@ -15,10 +14,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from common.models import BaseModel, UUIDBaseModel
 from account.utils import get_avatar_path
-
-
-class UserManager(BaseUserManager):  
-    pass
+from account.manager import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
@@ -81,7 +77,7 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
 
     objects = UserManager()
-
+    
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -101,6 +97,9 @@ class User(AbstractBaseUser, PermissionsMixin, UUIDBaseModel):
         """Send an email to this user."""
         send_mail(subject, message, from_email, [self.email], **kwargs)
 
+    def save(self, *args, **kwargs):
+        self.username = self.username.lower()
+        return super().save(*args, **kwargs)
 
 
 class Profile(BaseModel):

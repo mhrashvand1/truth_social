@@ -1,18 +1,18 @@
-var current_user_username;
-var chat_ul = $('#chat');
-var contact_ul = $('#contacts');
+let current_user_username;
+let chat_ul = $('#chat');
+let contact_ul = $('#contacts');
 
 // window.onload = function(e){
 //     msgdiv.scrollTop(msgdiv.prop("scrollHeight"));
 // }
 
 
-var socket = new WebSocket(
+let socket = new WebSocket(
 'ws://' + window.location.host + '/chat/'
 );
 
 socket.onmessage = function(e) {
-    var message = JSON.parse(e.data);
+    let message = JSON.parse(e.data);
 
     switch (message['type']) {
         case "get_current_user_data":
@@ -31,6 +31,53 @@ socket.onmessage = function(e) {
             break;
     }
 };
+
+socket.onclose = function(e) {
+    console.error('Socket closed unexpectedly');
+};
+
+let msg_input = document.querySelector('#msg-input');
+if (msg_input !== null) {
+    msg_input.focus();
+    msg_input.onkeydown = function(e) {
+        const keyCode = e.which || e.keyCode;
+    
+        if (keyCode === 13 && !e.shiftKey) {
+            e.preventDefault();
+            document.querySelector('#msg-submit').click();
+        }
+    };
+}
+
+let msg_submit = document.querySelector('#msg-submit');
+if (msg_submit !== null){
+    msg_submit.onclick = function(e) {
+        let messageInputDom = document.querySelector('#msg-input');
+        let message = messageInputDom.value;
+        socket.send(JSON.stringify({'type':'msg', 'text': message}));
+        messageInputDom.value = '';
+    };
+}
+
+let search_username = document.querySelector('#search-username');
+search_username.onkeydown = function(e) {
+    const keyCode = e.which || e.keyCode;
+    if (keyCode === 13) {
+        e.preventDefault();
+        socket.send(
+            JSON.stringify(
+                {
+                    'type':'search_username',
+                    'username':search_username.value
+                }
+            )
+        );
+        search_username.value = '';
+    }
+}
+
+
+//////// handlers
 
 function messageHandler(message){
     chat_ul.append(`
@@ -56,29 +103,12 @@ function messageHandler(message){
 }
 
 
-socket.onclose = function(e) {
-    console.error('Socket closed unexpectedly');
-};
-
-document.querySelector('#msg-input').focus();
-document.querySelector('#msg-input').onkeydown = function(e) {
-    const keyCode = e.which || e.keyCode;
-
-    if (keyCode === 13 && !e.shiftKey) {
-        e.preventDefault();
-        document.querySelector('#msg-submit').click();
-    }
-};
-
-document.querySelector('#msg-submit').onclick = function(e) {
-    var messageInputDom = document.querySelector('#msg-input');
-    var message = messageInputDom.value;
-    socket.send(JSON.stringify({'text': message, 'sender':current_user_username}));
-    messageInputDom.value = '';
-};
 
 
-var contact_li = $('aside li').click(function() {
+
+///// extra
+
+let contact_li = $('aside li').click(function() {
     $(contact_li).removeClass('selected');
     $(this).addClass('selected');
     li = $(this);

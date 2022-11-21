@@ -32,7 +32,7 @@ class Room(BaseModel):
                     "You can't assign more than two members to private room"
                 )
         super().clean(*args, **kwargs)
-     
+    
     class Meta:
         db_table = 'Room'
         verbose_name = _('room')

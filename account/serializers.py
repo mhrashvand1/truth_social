@@ -15,7 +15,9 @@ from djoser.serializers import (
     SetUsernameSerializer as BaseSetUsernameSerializer,
     SetUsernameRetypeSerializer,
     UsernameResetConfirmSerializer as BaseUsernameResetConfirmSerializer,
-    UsernameResetConfirmRetypeSerializer
+    UsernameResetConfirmRetypeSerializer,
+    CurrentPasswordSerializer,
+    UidAndTokenSerializer
 )
 from django.db import IntegrityError, transaction
 from djoser.conf import settings
@@ -26,9 +28,11 @@ from account.constants import RESERVED_WORDS
 from random import sample
 from django.urls import reverse
 from notification.models import Bell
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from account.validators import UsernameUniqueValidator
+from rest_framework.validators import UniqueValidator
 
 User = get_user_model()
-
 
 class TokenObtainPairSerializer(serializers.Serializer):
     
@@ -66,7 +70,7 @@ class TokenObtainPairSerializer(serializers.Serializer):
             raise exceptions.AuthenticationFailed(
                 _('Email is not verified'), 401
             )
-        
+                 
         return str(user.username)   
 
 
@@ -247,13 +251,23 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         write_only=True, 
         style={'input_type': 'password', 'placeholder': 'Password'}
     )
+    username = serializers.CharField(
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+        max_length=150, 
+        validators=[
+            UnicodeUsernameValidator(), 
+            UsernameUniqueValidator(queryset=User.objects.all())
+        ],
+        required=True,
+        allow_blank=False
+    )
     
     class Meta:
         model = get_user_model()
         fields = ["id", "username", "email", "password", "re_password", "name"]
      
     def validate_username(self, value):
-        if value in RESERVED_WORDS:
+        if value in RESERVED_WORDS or value.lower() in RESERVED_WORDS:
             raise serializers.ValidationError(
                 f"{value} is a reserved word."
             )
@@ -308,7 +322,6 @@ class SendEmailResetSerializer(serializers.Serializer, UserFunctionsMixin):
         self.fields[self.email_field] = serializers.EmailField()
 
 
-
 class ActivationSerializer(UidAndTokenSerializer):
     
     default_error_messages = {
@@ -322,20 +335,78 @@ class ActivationSerializer(UidAndTokenSerializer):
         raise exceptions.PermissionDenied(self.error_messages["stale_token"])
  
 
-class SetUsernameSerializer(BaseSetUsernameSerializer):
+
+class SetUsernameSerializer(serializers.ModelSerializer):
     
+    new_username = serializers.CharField(
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+        max_length=150, 
+        validators=[
+            UnicodeUsernameValidator(), 
+            UsernameUniqueValidator(queryset=User.objects.all())
+        ],
+        required=True,
+        allow_blank=False
+    )
+    current_password = serializers.CharField(
+        style={"input_type": "password"},
+        required=True,
+        allow_blank=False
+    )
+     
+    default_error_messages = {
+        "invalid_password": settings.CONSTANTS.messages.INVALID_PASSWORD_ERROR
+    }
+     
+    class Meta:
+        model = User
+        fields = ('new_username', "current_password")
+
     def validate_new_username(self, value):
-        if value in RESERVED_WORDS:
-            raise serializers.ValidationError(
-                f"{value} is a reserved word."
-            )
-        return value    
-    
-class UsernameResetConfirmSerializer(BaseUsernameResetConfirmSerializer):
-    
-    def validate_new_username(self, value):
-        if value in RESERVED_WORDS:
+        if value in RESERVED_WORDS or value.lower() in RESERVED_WORDS:
             raise serializers.ValidationError(
                 f"{value} is a reserved word."
             )
         return value
+    
+    def validate_current_password(self, value):
+        is_password_valid = self.context["request"].user.check_password(value)
+        if is_password_valid:
+            return value
+        else:
+            self.fail("invalid_password")  
+    
+    def save(self, **kwargs):
+        self.validated_data = {'username':self.validated_data['new_username']}
+        return super().save(**kwargs)
+    
+    
+    
+class UsernameResetConfirmSerializer(UidAndTokenSerializer , serializers.ModelSerializer):
+
+    new_username = serializers.CharField(
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+        max_length=150, 
+        validators=[
+            UnicodeUsernameValidator(), 
+            UsernameUniqueValidator(queryset=User.objects.all())
+        ],
+        required=True,
+        allow_blank=False
+    )
+    
+    class Meta:
+        model = User
+        fields = ('new_username', "uid", "token")
+
+    def validate_new_username(self, value):
+        if value in RESERVED_WORDS or value.lower() in RESERVED_WORDS:
+            raise serializers.ValidationError(
+                f"{value} is a reserved word."
+            )
+        return value
+    
+    def save(self, **kwargs):
+        self.validated_data = {'username':self.validated_data['new_username']}
+        return super().save(**kwargs)
+    

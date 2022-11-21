@@ -19,7 +19,6 @@ from django.db.models import Q
 from account.permissions import UserRetrievePermissions, UserUpdatePermissions
 from common.paginations import StandardPagination
 
-
 User = get_user_model()
 
 

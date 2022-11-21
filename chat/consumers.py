@@ -36,12 +36,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         text_data = json.loads(text_data)
+        await getattr(self, f"{text_data['type']}_handler")(text_data, bytes_data)
+
+
+    async def disconnect(self, close_code):
+        pass
+
+    # handlers
+    async def msg_handler(self, text_data=None, byte_data=None):
         message = {
             'type':'msg',
             'text':text_data['text'],
             'datetime':str(timezone.now().now())[:19]
         }
         await self.send(text_data=json.dumps(message))
-
-    async def disconnect(self, close_code):
+        
+    async def search_username_handler(self, text_data=None, byte_data=None):
         pass
+        
+    # callbacks
+    
