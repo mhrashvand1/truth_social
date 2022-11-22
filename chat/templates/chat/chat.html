@@ -4,30 +4,28 @@
 {% block aside%}
 <aside>
     <header>
-        <input type="text" placeholder="username" id='search-username'>
+        <input type="text" placeholder="username" id='search-username' onkeydown="searchUsernameSubmitHandler(event)">
     </header>
 
     <ul id="contacts">
-        
-        {% comment %} <li>
+        <li data-username="kir" data-roomid='7' onclick="contactClickHandler(event)">
 	        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
 	        <div>
-		        <h2 class="contact-name-aside">Prénom Nom</h2>
+		        <h2 class="contact-name-aside">user1-name</h2>
 		        <h3>
-		        	<span class="new-message-count">12</span> new message
+		        	<span class="new-message-count">0</span> new message
 		        </h3>
 	        </div>
        </li>
-
-	   <li>
+	   <li data-username="kos" data-roomid='233' onclick="contactClickHandler(event)">
 		    <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
 		    <div>
-		    	<h2 class="contact-name-aside">Prénom Nom</h2>
+		    	<h2 class="contact-name-aside">user2-name</h2>
 		    	<h3>
 		    		<span class="new-message-count">12</span> new message
 		    	</h3>
 		    </div>
-       </li> {% endcomment %}
+       </li>
 	   
    </ul>
 
@@ -38,15 +36,10 @@
 {% block main %}
 <main>
 
-	<header>
-		{% comment %} <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="">
-		<div>
-			<h2 class="contact-name-main">Prénom Nom</h2>
-			<h3 class="online-status">online</h3>
-		</div> {% endcomment %}
+	<header id="main-header">
 	</header>
 
-	<ul id="chat">
+	<ul id="chat"> <!-- The id should not be changed -->
 		
 		{% comment %} <li class="you">
 			<div class="entete">
@@ -73,15 +66,12 @@
 
 	</ul>
 
-	<footer>
-		{% comment %} <textarea id="msg-input" placeholder="Type your message" maxlength="1000"></textarea>
-		<button id="msg-submit" type="submit">Send</button> {% endcomment %}
-	</footer>
+	<footer id='main-footer'></footer>
 
  </main>
 {% endblock main %}
 
 
 {% block scripts %}
-<script async defer src="{% static 'chat/chat.js' %}"></script>
+<script async defer src="{% static 'chat/js/chat.js' %}"></script>
 {% endblock scripts %}
