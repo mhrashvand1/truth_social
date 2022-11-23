@@ -115,7 +115,7 @@ class Profile(BaseModel):
         verbose_name=_('user')
     )
     avatar = models.ImageField(
-        verbose_name=_('avatar'), default='no_avatar.png',
+        verbose_name=_('avatar'), default='truth_social_media/no_avatar.png',
         blank=True, upload_to=get_avatar_path
     )
     bio = models.CharField(verbose_name=_('bio'), max_length=150, blank=True)

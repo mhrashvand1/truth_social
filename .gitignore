@@ -258,5 +258,6 @@ testotp.py
 !.env
 static
 !chat/static/
-media/*[^no_avatar.png$]*
+# media/*[^no_avatar.png$]*
+media/*[^truth_social_media$]
 ####

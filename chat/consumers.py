@@ -51,7 +51,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = {
             'type':'chat_message',
             'text':text_data['text'],
-            'datetime':str(timezone.now().now())[:19]
+            'datetime':str(timezone.now().now())[:19],
+            'sender_name':self.scope['user'].name,
+            'sender_username':self.scope['user'].username
         }
         await self.send(text_data=json.dumps(message)) ##
         
@@ -71,6 +73,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             context['status'] = 200
         except User.DoesNotExist:
             context['status'] = 404
+            context['username'] = username
 
         await self.send(text_data=json.dumps(context))
     
