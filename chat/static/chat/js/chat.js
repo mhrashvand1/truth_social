@@ -52,6 +52,7 @@ function chatMessageHandler(message){
             sender_name:message['sender_name'],
             datetime:message['datetime'],
             text:message['text'],
+            message_id:message['message_id'],
             prepend_or_append:'append'
         }
     );
@@ -106,6 +107,7 @@ function contactClickHandler(e){
     }
     contactRemoveSelected();
     contactAddSelected(target);
+    // codes bellow will be handle in the contactAddSelected in the future:
     addMainFooter(); 
     addMainHeader({
         'avatar':target.querySelector('img').getAttribute('src'),
@@ -117,6 +119,7 @@ function contactClickHandler(e){
     // online status, ...  get online status by send request to server
     cleanChatUL(); // temporary  it will complete in load messages
     // load messages -> delete old one, ...
+    // clean notif and request to update last read --> write a function in utils for it.
 }
 
 function searchUsernameMessageHandler(message){
@@ -203,9 +206,9 @@ function truthSocialBotMessage({message='', code=''}={}){
         'online_status':'always online'
     });
     let currentdate = new Date(); 
-    let datetime =  currentdate.getDate() + "/"
-                    + (currentdate.getMonth()+1)  + "/" 
-                    + currentdate.getFullYear() + " @ "  
+    let datetime =  currentdate.getFullYear() + "-"
+                    + (currentdate.getMonth()+1)  + "-" 
+                    +  currentdate.getDate() + " "  
                     + currentdate.getHours() + ":"  
                     + currentdate.getMinutes() + ":" 
                     + currentdate.getSeconds();
@@ -220,7 +223,7 @@ function truthSocialBotMessage({message='', code=''}={}){
 }
 
 function addMessageLI({
-    li_class='you', datetime='', sender_name='', 
+    li_class='you', datetime='', sender_name='', message_id='',
     sender_username='', text='', prepend_or_append='append'
 }={})
 {
@@ -230,9 +233,9 @@ function addMessageLI({
     }
     
     let li = `
-    <li class="LICLASS" data-username="SENDERUSERNAME">
+    <li class="LICLASS" data-username="SENDERUSERNAME" data-message-id="MESSAGEID" data-datetime="DATETIME">
         <div class="entete">
-            <h3>DATETIME</h3>
+            <h3>SHOWDATETIME</h3>
             <h2>SENDERNAME</h2>
             <span class="status COLOR"></span>
         </div>
@@ -243,7 +246,8 @@ function addMessageLI({
     </li>
     `.replace('LICLASS', li_class).replace('SENDERUSERNAME', sender_username
     ).replace('DATETIME', datetime).replace('SENDERNAME', sender_name
-    ).replace('COLOR', color).replace('MESSAGETEXT', text)
+    ).replace('COLOR', color).replace('MESSAGETEXT', text
+    ).replace('MESSAGEID', message_id).replace('SHOWDATETIME', datetime.slice(0, 19)) 
 
     if (prepend_or_append === 'append'){
         chat_ul.append(li);

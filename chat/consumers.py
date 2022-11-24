@@ -19,7 +19,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
         user = self.scope['user']                
-
         if not user.is_authenticated:
             message = {
                 "type":"user_not_authenticated",
@@ -35,37 +34,42 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(context))
 
 
+    async def disconnect(self, close_code):
+        pass
+    
+    
     async def receive(self, text_data=None, bytes_data=None):
         text_data = json.loads(text_data)
         await getattr(self, f"{text_data['type']}_handler")(text_data, bytes_data)
 
 
-    async def disconnect(self, close_code):
-        pass
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+    ############################# handlers #######################################
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
 
-    ################
-    ### handlers ###
-    ################
-    
     async def chat_message_handler(self, text_data=None, byte_data=None):
         message = {
             'type':'chat_message',
             'text':text_data['text'],
-            'datetime':str(timezone.now().now())[:19],
+            'datetime':str(timezone.now().now()),
             'sender_name':self.scope['user'].name,
-            'sender_username':self.scope['user'].username
+            'sender_username':self.scope['user'].username,
+            'message_id':'', ##
         }
         await self.send(text_data=json.dumps(message)) ##
+        
         
     async def search_username_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
         context = dict()
         context['type'] = 'search_username' 
-        current_user = self.scope['user']
-        
+        current_user = self.scope['user']    
         if current_user.username == username.lower():
-            return
-        
+            return    
         try:
             user = await sync_to_async(User.objects.get)(username=username)
             data = await self.serialize_user(user)
@@ -74,23 +78,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except User.DoesNotExist:
             context['status'] = 404
             context['username'] = username
-
         await self.send(text_data=json.dumps(context))
     
-    #################   
-    ### callbacks ###
-    #################
-
-
-
-    ##################
-    ##### utils ######
-    ##################
     
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+    ########################### callbacks ########################################
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+
+
+
+
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+    ################################## utils #####################################
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+        
     async def serialize_user(self, user):
         result = dict()
-        result['name'], result['username'] = user.name, user.username  
-        
+        result['name'], result['username'] = user.name, user.username    
         try:
             profile = await sync_to_async(Profile.objects.get)(user=user)
             result['avatar'] = await self.get_abolute_uri(url=profile.avatar.url)
@@ -100,8 +112,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             online_status = await sync_to_async(OnlineStatus.objects.get)(user=user)
             result['online_status'] = dict(OnlineStatus.status_choices)[online_status.status]
         except OnlineStatus.DoesNotExist:
-            result['online_status'] = ''
-            
+            result['online_status'] = ''       
         return result
     
     async def get_abolute_uri(self, url):
