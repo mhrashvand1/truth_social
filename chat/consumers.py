@@ -52,6 +52,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     ##############################################################################
 
     async def chat_message_handler(self, text_data=None, byte_data=None):
+        if text_data['text'].isspace():
+            return
+        text_data['text'] = text_data['text'].strip()
         message = {
             'type':'chat_message',
             'text':text_data['text'],

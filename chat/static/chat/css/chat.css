@@ -2,13 +2,13 @@
 	box-sizing:border-box;
 }
 body{
-	background-color:#abd9e9;
+	background-color: #051352;
 	font-family:Arial;
 }
 #container{
 	width:750px;
 	height:800px;
-	background:#eff3f7;
+	background:#dfdfe1;
 	margin:0 auto;
 	font-size:0;
 	border-radius:5px;
@@ -17,7 +17,7 @@ body{
 aside{
 	width:260px;
 	height:800px;
-	background-color:#3b3e49;
+	background-color: #0d475bd8;
 	display:inline-block;
 	font-size:15px;
 	vertical-align:top;
@@ -58,13 +58,13 @@ aside ul{
 	height:690px;
 }
 aside li{
-	padding:10px 0;
+	padding:11px 0;
 }
 aside li:hover{
 	background-color:#5e616a;
 }
 aside li.selected{
-	background-color: #6fbced;
+	background-color: #71bbe9dc;
 } 
 h2,h3{
 	margin:0;
@@ -80,9 +80,9 @@ aside li div{
 	margin-top:12px;
 }
 aside li h2{
-	font-size:14px;
+	font-size:15px;
 	color:#fff;
-	font-weight:normal;
+	font-weight:4000;
 	margin-bottom:5px;
 }
 aside li h3{
@@ -163,13 +163,15 @@ main header h3{
 	margin-bottom:5px;
 }
 #chat .message{
-	padding:20px;
+	padding:10px; /* was 20px */
 	color:#fff;
 	line-height:25px;
 	max-width:90%;
 	display:inline-block;
-	text-align:left;
+	text-align:right; /* was left */
 	border-radius:5px;
+	word-wrap: break-word; /* new */
+	white-space: pre-wrap; /* new */
 }
 #chat .me{
 	text-align:right;
@@ -221,4 +223,16 @@ main footer{
 	display:inline-block;
 	width: 80px;
 	height: 30px;
+}
+.new-messages-number{ /* */
+	color: #f8f8f8;
+	background-color: #18a021d4;
+	border-radius: 12px;
+	padding: 4px;
+	font-weight: 1000;
+}
+.datetime{
+	color: #5e616a;
+    font-size: 15px;
+	font-weight: 3000;
 }

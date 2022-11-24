@@ -70,6 +70,9 @@ function msgInputKeydownHandler(e){
 function msgSubmitOnclickHandler(e){
     let messageInputDom = document.querySelector('#msg-input');
     let message = messageInputDom.value;
+    if (message.length === 0){
+        return;
+    }
     socket.send(JSON.stringify({'type':'chat_message', 'text': message}));
     messageInputDom.value = '';
     // ...
@@ -235,12 +238,12 @@ function addMessageLI({
     let li = `
     <li class="LICLASS" data-username="SENDERUSERNAME" data-message-id="MESSAGEID" data-datetime="DATETIME">
         <div class="entete">
-            <h3>SHOWDATETIME</h3>
-            <h2>SENDERNAME</h2>
+            <h3 style="color:#5e616a;">SHOWDATETIME</h3>
+            <h2 style="font-size:17px;">SENDERNAME</h2>
             <span class="status COLOR"></span>
         </div>
         <div class="triangle"></div>
-        <div class="message">
+        <div class="message"> 
             MESSAGETEXT
         </div>
     </li>

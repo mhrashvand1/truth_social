@@ -10,14 +10,6 @@ User = get_user_model()
 
 class Room(BaseModel):
     
-    TYPES = [
-        (0, 'private'),
-        (1, 'group')
-    ]
-    room_type = models.IntegerField(
-        verbose_name='room type',
-        choices=TYPES
-    )
     members = models.ManyToManyField(
         to=User, 
         related_name='rooms',
@@ -25,30 +17,11 @@ class Room(BaseModel):
         verbose_name='members',     
     )
     
-    def clean(self, *args, **kwargs):
-        if self.room_type == 0:
-            if self.members.count() > 2:
-                raise ValidationError(
-                    "You can't assign more than two members to private room"
-                )
-        super().clean(*args, **kwargs)
-    
     class Meta:
         db_table = 'Room'
         verbose_name = _('room')
         verbose_name_plural = _('rooms')
                
-# class GroupSpecification(BaseModel):
-#     room = models.OneToOneField(
-#         to='Room', primary_key=True, db_index=True,
-#         on_delete=models.CASCADE, related_name='group_specification',
-#         verbose_name='room'
-#     )
-#     # TODO: implement group chat
-#     # group_name
-#     # group_avatar
-#     # group_bio
-#     ...
         
 class RoomUser(BaseModel):
     
@@ -68,7 +41,7 @@ class RoomUser(BaseModel):
         default=timezone.now,
         verbose_name='last message read time'
     )
-    
+      
     class Meta:
         db_table = 'RoomUser'
         verbose_name = _('room_user')
@@ -92,10 +65,3 @@ class Message(BaseModel):
         db_table = 'Message'
         verbose_name = _('message')
         verbose_name_plural = _('messages')
-
-    # def clean(self, *args, **kwargs):
-    #     if self.author not in self.room.members.all():
-    #         raise ValidationError(
-    #             'Author is not member of the room'
-    #         )
-    #     super().clean(*args, **kwargs)
