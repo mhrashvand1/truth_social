@@ -7,27 +7,7 @@
         <input type="text" placeholder="username" id='search-username' onkeydown="searchUsernameSubmitHandler(event)">
     </header>
 
-    <ul id="contacts">
-        <li data-username="kir" data-roomid='7' onclick="contactClickHandler(event)">
-	        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="" width="50" height="50">
-	        <div>
-		        <h2 class="contact-name-aside">user1-name</h2>
-		        <h3>
-		        	<span class="new-messages-number">3</span>
-		        </h3>
-	        </div>
-       </li>
-	   <li data-username="kos" data-roomid='233' onclick="contactClickHandler(event)">
-		    <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1940306/chat_avatar_01.jpg" alt="" width="50" height="50">
-		    <div>
-		    	<h2 class="contact-name-aside">user2-name</h2>
-		        <h3>
-		        	<span class="new-messages-number">23</span>
-		        </h3>
-		    </div>
-       </li>
-	   
-   </ul>
+    <ul id="contacts"></ul>
 
 </aside>
 {% endblock aside %}

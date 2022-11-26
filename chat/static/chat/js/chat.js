@@ -19,6 +19,9 @@ socket.onmessage = function(e) {
                 'http://' + window.location.host + '/chat/login/'
             );
             break;
+        case "load_contacts":
+            loadContactsHandler(message); //////////////////
+            break;
         case "chat_message":
             chatMessageHandler(message);
             break;
@@ -34,30 +37,45 @@ socket.onclose = function(e) {
     console.error('Socket closed unexpectedly');
 };
 
-//////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
-/////////////////////////// handlers /////////////////////////////
-//////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// handlers ////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function loadContactsHandler(message){
+    let contacts = message['results'];
+    for (let i=0; i<contacts.length; i++){
+        addContactLI({
+            username:contacts[i]['username'],
+            name:contacts[i]['name'],
+            avatar:contacts[i]['avatar'],
+            roomid:contacts[i]['room_id'],
+            new_msg_count:contacts[i]['new_msg_count'],
+            last_msg_time:contacts[i]['last_message_time']
+        })
+    }
+}
 
 function chatMessageHandler(message){
     let li_class = 'you';
     if (message['sender_username'] === current_user_username){
         li_class = 'me';
     } 
-    addMessageLI(
-        {
-            li_class:li_class,
-            sender_username:message['sender_username'],
-            sender_name:message['sender_name'],
-            datetime:message['datetime'],
-            text:message['text'],
-            message_id:message['message_id'],
-            prepend_or_append:'append'
-        }
-    );
+    addMessageLI({
+        li_class:li_class,
+        sender_username:message['sender_username'],
+        sender_name:message['sender_name'],
+        datetime:message['datetime'],
+        text:message['text'],
+        message_id:message['message_id'],
+        prepend_or_append:'append'
+    });
     chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
-    // ... scroll (fix or down), last_read, ...(اینو با رویداد خود اسکرول قاطی نکن.)
+    // ... scroll (fix or down), ...(اینو با رویداد خود اسکرول قاطی نکن.)
+    // اگه اسکرول بیاد پایین, طبق چیزی که تو رویداد اسکرول تعریف خواهیم کرد  باید last_read هم اپدیت بشه.
 }
 
 function msgInputKeydownHandler(e){
@@ -73,7 +91,7 @@ function msgSubmitOnclickHandler(e){
     if (message.length === 0){
         return;
     }
-    socket.send(JSON.stringify({'type':'chat_message', 'text': message}));
+    socket.send(JSON.stringify({'type':'chat_message', 'text': message})); // to
     messageInputDom.value = '';
     // ...
 }
@@ -108,21 +126,15 @@ function contactClickHandler(e){
     if (target.tagName !== 'LI'){
         target = target.parentElement.closest('li');
     }
+    if (checkClickOnNewContact(target) === false){
+        return;
+    }
     contactRemoveSelected();
     contactAddSelected(target);
-    // codes bellow will be handle in the contactAddSelected in the future:
-    addMainFooter(); 
-    addMainHeader({
-        'avatar':target.querySelector('img').getAttribute('src'),
-        'username':target.getAttribute('data-username'),
-        'roomid':target.getAttribute('data-roomid'),
-        'name':target.querySelector('.contact-name-aside').innerText,
-        'online_status':''
-    });
-    // online status, ...  get online status by send request to server
-    cleanChatUL(); // temporary  it will complete in load messages
-    // load messages -> delete old one, ...
-    // clean notif and request to update last read --> write a function in utils for it.
+}
+
+function contactDBClickHandler(e){
+    chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
 }
 
 function searchUsernameMessageHandler(message){
@@ -145,11 +157,13 @@ function searchUsernameMessageHandler(message){
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-/////////////////////////// utils /////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// utils ///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function cleanMainHeader(){
     document.querySelector('#main-header').innerHTML = '';
@@ -172,16 +186,41 @@ function addMainFooter(){
     document.querySelector('#msg-input').focus();
 }
 
+function checkClickOnNewContact(aside_li_tag){
+    let contact = document.querySelector(`aside li.selected`);
+    if (aside_li_tag === contact){
+        return false;
+    }
+    else{
+        return true;
+    }
+}
+
 function contactRemoveSelected(){
     let contact = document.querySelector(`aside li.selected`);
     if (contact !== null){
         contact.classList.remove('selected');
-        // TODO disconnect to room (send disconnect request to server)
+        let username = contact.getAttribute('data-username');
+        socket.send(JSON.stringify({'type':'room_disconnect_request', 'username': username}));
     }
 }
 function contactAddSelected(aside_li_tag){
     // TODO connect to room
     aside_li_tag.classList.add('selected');
+    let username = aside_li_tag.getAttribute('data-username');
+    socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
+    addMainFooter(); 
+    addMainHeader({
+        'avatar':aside_li_tag.querySelector('img').getAttribute('src'),
+        'username':aside_li_tag.getAttribute('data-username'),
+        'roomid':aside_li_tag.getAttribute('data-roomid'),
+        'name':aside_li_tag.querySelector('.contact-name-aside').innerText,
+        'online_status':''
+    });
+    // online status, ...  get online status by send request to server
+    cleanChatUL(); // temporary  it will complete in load messages
+    // load messages -> delete old one, ...
+    // clean notif and request to update last read --> write a function in utils for it.
 }
 
 function addMainHeader(data){
@@ -259,6 +298,35 @@ function addMessageLI({
         chat_ul.prepend(li);
     }
      
+}
+
+function addContactLI({
+    username='', name='', avatar='', roomid='', 
+    new_msg_count='', last_msg_time='', prepend_or_append='append'
+}={})
+{
+    let li = `
+        <li data-username="USERNAME" data-roomid="ROOMID" data-last-msg-time="LASTMSGTIME" onclick="contactClickHandler(event)" ondblclick="contactDBClickHandler(event)">
+            <img src="AVATAR" alt="" width="50" height="50">
+            <div>
+                <h2 class="contact-name-aside">NAME</h2>
+                <h3>
+                    <span class="new-messages-number">NEWMSGCOUNT</span> &nbsp&nbsp VISUALLASTMSGTIME
+                </h3>
+            </div>
+        </li>
+    `.replace("USERNAME", username).replace('ROOMID', roomid
+    ).replace('AVATAR', avatar).replace('NAME', name
+    ).replace('NEWMSGCOUNT', new_msg_count
+    ).replace('LASTMSGTIME'. last_msg_time
+    ).replace('VISUALLASTMSGTIME', last_msg_time.slice(11, 16))
+
+    if (prepend_or_append === 'append'){
+        contact_ul.append(li);
+    }
+    else{
+        contact_ul.prepend(li);
+    }  
 }
 
 /////////////////////////////////////////////////////////////////
