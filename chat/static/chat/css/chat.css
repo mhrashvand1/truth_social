@@ -59,7 +59,7 @@ aside ul{
 }
 aside li{
 	padding:11px 0;
-	cursor:pointer; /* */
+	/* cursor:pointer; */
 }
 aside li:hover{
 	background-color:#5e616a;
@@ -248,5 +248,5 @@ main footer{
 .contact-delete-icon-div i{ /* */
 	font-size: 24px;
 	color:#b80707;
-	/* cursor:pointer; */
+	cursor:pointer;
 }

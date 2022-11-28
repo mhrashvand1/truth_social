@@ -4,7 +4,7 @@
 {% block aside%}
 <aside>
     <header>
-        <input type="text" placeholder="username" id='search-username' onkeydown="searchUsernameSubmitHandler(event)">
+        <input type="text" placeholder="username" id='search-username' onkeydown="searchUsernameKeydownHandler(event)">
     </header>
 
     <ul id="contacts"></ul>
@@ -16,11 +16,9 @@
 {% block main %}
 <main>
 
-	<header id="main-header">
-	</header>
+	<header id="main-header"></header>
 
-	<ul id="chat"> <!-- The id should not be changed -->
-	</ul>
+	<ul id="chat"></ul>  <!-- The id should not be changed -->
 
 	<footer id='main-footer'></footer>
 

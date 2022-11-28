@@ -20,13 +20,22 @@ socket.onmessage = function(e) {
             );
             break;
         case "load_contacts":
-            loadContactsHandler(message); //////////////////
+            loadContactsMessageHandler(message); //////////////////
             break;
         case "chat_message":
             chatMessageHandler(message);
             break;
         case "search_username":
             searchUsernameMessageHandler(message);
+            break;
+        case "you_are_blocked":
+            showBlockMessageHandler(message);
+            break;
+        case "add_contact":
+            addContactMessageHandler(message);
+            break;
+        case "delete_contact":
+            deleteContactMessageHandler(message);
             break;
         default:
             break;
@@ -40,12 +49,12 @@ socket.onclose = function(e) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////// handlers ////////////////////////////////////////////////////////////////////////////
+/////////////////////////// socket message handlers /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function loadContactsHandler(message){
+function loadContactsMessageHandler(message){
     let contacts = message['results'];
     for (let i=0; i<contacts.length; i++){
         addContactLI({
@@ -55,8 +64,34 @@ function loadContactsHandler(message){
             roomid:contacts[i]['room_id'],
             new_msg_count:contacts[i]['new_msg_count'],
             last_msg_time:contacts[i]['last_message_time']
-        })
+        });
     }
+}
+
+function addContactMessageHandler(message){
+    addContactLI({
+        username:message['username'],
+        name:message['name'],
+        avatar:message['avatar'],
+        roomid:message['room_id'],
+        new_msg_count:message['new_msg_count'],
+        last_msg_time:message['last_message_time'],
+        prepend_or_append:"prepend"
+    });
+    if (message['actor']===current_user_username){
+        let contact = document.querySelector(`aside li[data-username=${message['username']}]`);
+        if (contact !== null){
+            contact.click();
+        }
+    }
+}
+
+function deleteContactMessageHandler(message){
+    
+}
+
+function loadMessagesMessageHandler(message){
+
 }
 
 function chatMessageHandler(message){
@@ -78,6 +113,45 @@ function chatMessageHandler(message){
     // اگه اسکرول بیاد پایین, طبق چیزی که تو رویداد اسکرول تعریف خواهیم کرد  باید last_read هم اپدیت بشه.
 }
 
+function notificationMessageHandler(message){
+
+}
+
+function searchUsernameMessageHandler(message){
+    console.log(message);
+    if (message['status'] === 404){
+        truthSocialBotMessage({
+            message:`user with username ${message['username']} not found.`,
+            code: 404
+        });
+    }
+    else{
+        cleanChatUL();
+        addMainFooter();
+        addMainHeader(message);
+        // وصل شدن به روم جدید در صورت ارسال اولین پیام؟ خب این مال اینجا نیست.
+        // بعد از تشکیل روم و اضافه شدن کانتکت و فراخانی اد سلکت وصل میشه به روم جدید.
+        // البته وقتی روم تشکیل شد و به کانتکتا اضافه شد کافیه کلیک رو فرا بخونیم  خودش بقیه کارا رو انجام میدع
+        // حواست باشه کلیک رو فقط برای شخصی که اولین مسیج رو فرستاده باید بزنیم!!
+        // ینی توی جوابی که سرور میفرسته و تایپش مقلا کریت نیو روم هست یه متغییر داره به نام هو کریت روم و اگه برابر با تو بود اونوقت کلیک میشه رو کانتکت
+    }
+}
+
+function showBlockMessageHandler(message){
+    let blocker_username = message['blocker'];
+    truthSocialBotMessage({
+        message:`${blocker_username} has blocked you :((`,
+        code: '403'
+    });
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// event handlers /////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function msgInputKeydownHandler(e){
     const keyCode = e.which || e.keyCode;   
     if (keyCode === 13 && !e.shiftKey) {
@@ -85,18 +159,25 @@ function msgInputKeydownHandler(e){
         document.querySelector('#msg-submit').click();
     }
 }
-function msgSubmitOnclickHandler(e){
+function msgSubmitClickHandler(e){
     let messageInputDom = document.querySelector('#msg-input');
     let message = messageInputDom.value;
     if (message.length === 0){
         return;
     }
-    socket.send(JSON.stringify({'type':'chat_message', 'text': message})); // to
+    let username = $("#main-header div").attr('data-username');
+    socket.send(JSON.stringify({'type':'chat_message', 'text': message, 'to':username}));
     messageInputDom.value = '';
-    // ...
+
+    selected_contact = document.querySelector("aside li.selected");
+    if (selected_contact !== null){
+        let currentdate = new Date();
+        let datetime = standardDateTimeFormat(currentdate);
+        updateLastMsgTime({target:selected_contact, datetime:datetime});
+    }
 }
 
-function searchUsernameSubmitHandler(e){
+function searchUsernameKeydownHandler(e){
     let search_username = document.querySelector('#search-username');
     const keyCode = e.which || e.keyCode;
     if (keyCode === 13) {
@@ -137,26 +218,6 @@ function contactDBClickHandler(e){
     chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
 }
 
-function searchUsernameMessageHandler(message){
-    console.log(message);
-    if (message['status'] === 404){
-        truthSocialBotMessage({
-            message:`user with username ${message['username']} not found.`,
-            code: 404
-        });
-    }
-    else{
-        cleanChatUL();
-        addMainFooter();
-        addMainHeader(message);
-        // وصل شدن به روم جدید در صورت ارسال اولین پیام؟ خب این مال اینجا نیست.
-        // بعد از تشکیل روم و اضافه شدن کانتکت و فراخانی اد سلکت وصل میشه به روم جدید.
-        // البته وقتی روم تشکیل شد و به کانتکتا اضافه شد کافیه کلیک رو فرا بخونیم  خودش بقیه کارا رو انجام میدع
-        // حواست باشه کلیک رو فقط برای شخصی که اولین مسیج رو فرستاده باید بزنیم!!
-        // ینی توی جوابی که سرور میفرسته و تایپش مقلا کریت نیو روم هست یه متغییر داره به نام هو کریت روم و اگه برابر با تو بود اونوقت کلیک میشه رو کانتکت
-    }
-}
-
 function deleteContactRequestHandler(e){
     let target = e.target;
     let li = target.parentElement.closest('li');
@@ -169,11 +230,9 @@ function deleteContactRequestHandler(e){
         `Are you sure you want to delete the contact named ${name}?\nname: ${name}\nusername: ${username}`
     );
     console.log(result);
+    // send msg to server and request for delete contact
 }
 
-function deleteContactHandler(e){
-    
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +258,7 @@ function addMainFooter(){
     footer = document.querySelector('#main-footer');
     footer.innerHTML = `
     <textarea id="msg-input" placeholder="Type your message" maxlength="1000" onkeydown="msgInputKeydownHandler(event)"></textarea>
-    <button id="msg-submit" type="submit" onclick="msgSubmitOnclickHandler(event)">Send</button> 
+    <button id="msg-submit" type="submit" onclick="msgSubmitClickHandler(event)">Send</button> 
     `;  
     document.querySelector('#msg-input').focus();
 }
@@ -252,7 +311,7 @@ function addMainHeader(data){
     `;
 }
 
-function loadMessages(){
+function loadMessages({initial=true, datetime='', msg_id=''}={}){
     return;
 }
 
@@ -266,12 +325,8 @@ function truthSocialBotMessage({message='', code=''}={}){
         'online_status':'always online'
     });
     let currentdate = new Date(); 
-    let datetime =  currentdate.getFullYear() + "-"
-                    + (currentdate.getMonth()+1)  + "-" 
-                    +  currentdate.getDate() + " "  
-                    + currentdate.getHours() + ":"  
-                    + currentdate.getMinutes() + ":" 
-                    + currentdate.getSeconds();
+    let datetime = standardDateTimeFormat(currentdate);
+    console.log(datetime);
     let text = `${message} ${code}`;
     addMessageLI({
         li_class:'you',
@@ -329,7 +384,7 @@ function addContactLI({
             <div>
                 <h2 class="contact-name-aside">NAME</h2>
                 <h3>
-                    <span class="new-messages-number">NEWMSGCOUNT</span> &nbsp&nbsp VISUALLASTMSGTIME
+                    <span class="new-messages-number">NEWMSGCOUNT</span> &nbsp&nbsp <span class="last-msg-time">VISUALLASTMSGTIME</span>
                 </h3>
             </div>
             <div class="contact-delete-icon-div">
@@ -340,7 +395,7 @@ function addContactLI({
     ).replace('AVATAR', avatar).replace('NAME', name
     ).replace('NEWMSGCOUNT', new_msg_count
     ).replace('LASTMSGTIME'. last_msg_time
-    ).replace('VISUALLASTMSGTIME', last_msg_time.slice(11, 16))
+    ).replace('VISUALLASTMSGTIME', last_msg_time.slice(0, 19))
 
     if (prepend_or_append === 'append'){
         contact_ul.append(li);
@@ -350,6 +405,29 @@ function addContactLI({
     }  
 }
 
+function updateLastMsgTime({target=null, datetime=''}={}){
+    target.setAttribute("data-last-msg-time", datetime);
+    target.querySelector(".last-msg-time").innerText = datetime.slice(0, 19);
+}
+
+function standardDateTimeFormat(date_obj){
+
+    let month = toTwoDigit(date_obj.getMonth()+1);
+    let day = toTwoDigit(date_obj.getDate());
+    let hours = toTwoDigit(date_obj.getHours());
+    let minutes = toTwoDigit(date_obj.getMinutes());
+    let seconds = toTwoDigit(date_obj.getSeconds());
+
+    let datetime =  date_obj.getFullYear() + "-"
+                    + month + "-" 
+                    + day + " "  
+                    + hours + ":"  
+                    + minutes + ":" 
+                    + seconds + "."
+                    + date_obj.getMilliseconds();
+    
+    return datetime;
+}
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 //////////////////////////// extra //////////////////////////////
@@ -362,3 +440,10 @@ function addContactLI({
 //     li = $(this);
 // });
 
+function toTwoDigit(num){ 
+    let number = num.toString();
+    if (number.length === 2){
+        return number;
+    }
+    return "0" + number;
+}

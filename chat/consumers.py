@@ -27,11 +27,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(message))
             await self.close()
         else:
-            self.current_user_username = self.user.username
+            self.username = self.user.username
+            self.name = self.user.name
+            self.profile = await self.get_user_profile(self.user)
+            self.avatar_url = await self.get_abolute_uri(self.profile.avatar.url)
             context = {
                 "type":"get_current_user_data",
-                "username":self.current_user_username,
-                "name":self.user.name
+                "username":self.username,
+                "name":self.name
             }
             await self.send(text_data=json.dumps(context))
             await self.channel_layer.group_add(self.user.username, self.channel_name) ##
@@ -57,18 +60,53 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if text_data['text'].isspace():
             return
         text_data['text'] = text_data['text'].strip()
-        #
-        #
+        to = text_data['to']
+        
+        try:
+            destination_user = await sync_to_async(User.objects.get)(username=to)
+        except:
+            return
+
+        if await self.blocked_you(user=destination_user): # block effect on chat
+            await self.send(text_data=json.dumps({"type":"you_are_blocked", "blocker":to}))
+            return
+        
+        common_room = await self.get_pv_common_room(username=to) 
         message = {
             'type':'chat_message',
             'text':text_data['text'],
-            'datetime':str(timezone.now().now()),
-            'sender_name':self.user.name,
+            # 'datetime':str(timezone.now().now()),
+            'sender_name':self.name,
             'sender_username':self.user.username,
-            'message_id':'', ##
-        }
-        await self.send(text_data=json.dumps(message)) ##
+            # 'message_id':'', 
+        }  
+         
+        if common_room:
+            print('\n(1)\n')
+            # saving message
+            ...
+            message['datetime'] = str(timezone.now().now()) ##
+            message['message_id'] = '' ##
+            # group send msg
+            await self.channel_layer.group_send(str(common_room.id), {"type":"chat_message_callback", "message":message, "channel_name":self.channel_name})
+            # send notification
+            ...
+        else:
+            room = await self.create_pv_room(user1=self.user, user2=destination_user)
+            # saving message
+            ...
+            message['datetime'] = str(timezone.now().now()) ##
+            message['message_id'] = '' ##
         
+            # send add room msg
+            await self.send_new_contact(
+                destination_user=destination_user,
+                datetime=str(timezone.now().now()), ##
+                room_id=str(room.id)
+            )
+            # group send msg
+            await self.channel_layer.group_send(str(room.id), {"type":"chat_message_callback", "message":message, "channel_name":self.channel_name})
+                    
         
     async def search_username_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
@@ -110,9 +148,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
     ##############################################################################
     ##############################################################################
 
-
-
-
+    async def chat_message_callback(self, event):
+        # print('\n(2)\n')
+        # print(self.channel_name == event["channel_name"])
+        message = event["message"]
+        
+        print(dir(message))
+        
+        await self.send(text_data=json.dumps(message))
+        
+    async def send_new_contact_callback(self, event):
+        message = event["message"]
+        await self.send(text_data=json.dumps(message))
+            
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -126,7 +174,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         result = dict()
         result['name'], result['username'] = user.name, user.username    
         try:
-            profile = await sync_to_async(Profile.objects.get)(user=user)
+            profile = await self.get_user_profile(user)
             result['avatar'] = await self.get_abolute_uri(url=profile.avatar.url)
         except Profile.DoesNotExist:
             result['avatar'] = ''
@@ -155,7 +203,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         user_rooms = user_rooms.annotate(
             last_message_time=Max('messages__created_at')
-        ).order_by("-messages__created_at")
+        ).order_by("-last_message_time")
         
         return user_rooms
     
@@ -173,7 +221,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
     async def send_contacts(self):
         current_user = self.user
-        current_user_username = current_user.username
+        current_user_username = self.username
         current_user_rooms = await self.get_user_rooms(user=current_user)
         current_user_rooms_list = await sync_to_async(list)(current_user_rooms)
         final_result = list()
@@ -181,9 +229,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         for room in current_user_rooms_list:
             result = dict()
             result['room_id'] = str(room.id)
-            result['last_message_time'] = str(
-                room.last_message_time.astimezone(timezone.get_current_timezone())
-            )
+            
+            last_message_time = room.last_message_time
+            if last_message_time:
+                result['last_message_time'] = str(
+                    last_message_time.astimezone(timezone.get_current_timezone())
+                )
 
             try:
                 room_user_obj = await sync_to_async(RoomUser.objects.get)(
@@ -192,9 +243,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 another_user = await sync_to_async(room.members.get)(
                     ~Q(username=current_user_username)
                 )
-                another_user_profile = await sync_to_async(Profile.objects.get)(
-                    user=another_user
-                )
+                another_user_profile = await self.get_user_profile(user=another_user)
             except:
                 continue
             
@@ -209,4 +258,52 @@ class ChatConsumer(AsyncWebsocketConsumer):
         context = {"type":"load_contacts", "results":final_result}
         await self.send(text_data=json.dumps(context))
         
-   
+    
+    async def blocked_you(self, user):    
+        blockings_queryset = user.blockings.filter(username=self.username)
+        result = await sync_to_async(blockings_queryset.exists)()
+        return result
+    
+    async def create_pv_room(self, user1, user2):
+        room = await sync_to_async(Room.objects.create)()
+        await sync_to_async(RoomUser.objects.create)(room=room, user=user1)
+        await sync_to_async(RoomUser.objects.create)(room=room, user=user2)
+        return room
+    
+    async def get_user_profile(self, user):
+        profile = await sync_to_async(Profile.objects.get)(user=user)
+        return profile
+    
+    async def send_new_contact(
+        self, destination_user, datetime, room_id
+    ):
+        destination_user_profile = await self.get_user_profile(destination_user)
+        
+        # send for current user
+        message = {
+            "type":"add_contact",
+            "actor":self.username,
+            "username":destination_user.username,
+            "name":destination_user.name,
+            "avatar":await self.get_abolute_uri(destination_user_profile.avatar.url),
+            "room_id":room_id,
+            "last_message_time":datetime,
+            "new_msg_count":1
+        }
+        await self.send(text_data=json.dumps(message))
+        
+        # send for destination user
+        message = {
+            "type":"add_contact",
+            "actor":self.username,
+            "username":self.username,
+            "name":self.name,
+            "avatar":self.avatar_url,
+            "room_id":room_id,
+            "last_message_time":datetime,
+            "new_msg_count":1
+        }
+        await self.channel_layer.group_send(
+            destination_user.username,
+            {"type":"send_new_contact_callback", "message":message, "channel_name":self.channel_name}
+        )

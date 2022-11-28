@@ -9,6 +9,7 @@ class CommonUserSerializer(serializers.Serializer):
     bio = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
     followed_you = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField()
     
     def get_bio(self, obj):
         return str(obj.profile.bio)
