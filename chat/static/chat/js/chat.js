@@ -157,6 +157,24 @@ function searchUsernameMessageHandler(message){
     }
 }
 
+function deleteContactRequestHandler(e){
+    let target = e.target;
+    let li = target.parentElement.closest('li');
+    // if (! li.classList.contains('selected')){
+    //     return;
+    // }
+    let name = li.querySelector('.contact-name-aside').innerText;
+    let username = li.getAttribute('data-username');
+    let result = confirm(
+        `Are you sure you want to delete the contact named ${name}?\nname: ${name}\nusername: ${username}`
+    );
+    console.log(result);
+}
+
+function deleteContactHandler(e){
+    
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -313,6 +331,9 @@ function addContactLI({
                 <h3>
                     <span class="new-messages-number">NEWMSGCOUNT</span> &nbsp&nbsp VISUALLASTMSGTIME
                 </h3>
+            </div>
+            <div class="contact-delete-icon-div">
+                <i class="material-icons" onclick="deleteContactRequestHandler(event)">delete</i>
             </div>
         </li>
     `.replace("USERNAME", username).replace('ROOMID', roomid
