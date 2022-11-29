@@ -20,7 +20,7 @@ socket.onmessage = function(e) {
             );
             break;
         case "load_contacts":
-            loadContactsMessageHandler(message); //////////////////
+            loadContactsMessageHandler(message); //// why?  why slash?
             break;
         case "chat_message":
             chatMessageHandler(message);
@@ -36,7 +36,9 @@ socket.onmessage = function(e) {
             break;
         case "delete_contact":
             deleteContactMessageHandler(message);
-            console.log(message);
+            break;
+        case "load_messages":
+            loadMessagesMessageHandler(message);
             break;
         default:
             break;
@@ -102,7 +104,27 @@ function deleteContactMessageHandler(message){
 }
 
 function loadMessagesMessageHandler(message){
-
+    let messages = message['results'];
+    
+    for (let i=0; i<messages.length; i++){
+        let li_class = 'you';
+        if (messages[i]['sender_username'] === current_user_username){
+            li_class = 'me';
+        }
+        addMessageLI({
+            li_class:li_class,
+            sender_username:messages[i]['sender_username'],
+            sender_name:messages[i]['sender_name'],
+            datetime:messages[i]['datetime'],
+            text:messages[i]['text'],
+            message_id:messages[i]['message_id'],
+            prepend_or_append:'prepend'
+        });
+    }
+    let initial = message['initial'];
+    if (initial){
+        chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
+    }
 }
 
 function chatMessageHandler(message){
@@ -278,6 +300,17 @@ function addMainFooter(){
     document.querySelector('#msg-input').focus();
 }
 
+function addMainHeader(data){
+    let main_header = document.querySelector('#main-header');
+    main_header.innerHTML = `
+    <img src="${data['avatar']}" alt="" width="50" height="50">
+    <div data-username="${data['username']}" data-roomid="${data['roomid']}">
+        <h2 class="contact-name-main">${data['name']}</h2>
+        <h3 class="online-status">${data['online_status']}</h3>
+    </div>
+    `;
+}
+
 function checkClickOnNewContact(aside_li_tag){
     let contact = document.querySelector(`aside li.selected`);
     if (aside_li_tag === contact){
@@ -297,41 +330,33 @@ function contactRemoveSelected(){
     }
 }
 function contactAddSelected(aside_li_tag){
-    // TODO connect to room
     aside_li_tag.classList.add('selected');
     let username = aside_li_tag.getAttribute('data-username');
     roomConnectRequest(username);
     addMainFooter(); 
     addMainHeader({
         'avatar':aside_li_tag.querySelector('img').getAttribute('src'),
-        'username':aside_li_tag.getAttribute('data-username'),
+        'username':username,
         'roomid':aside_li_tag.getAttribute('data-roomid'),
         'name':aside_li_tag.querySelector('.contact-name-aside').innerText,
         'online_status':''
     });
-    // online status, ...  get online status by send request to server
-    cleanChatUL(); // temporary  it will complete in load messages
-    // load messages -> delete old one, ...
-    // clean notif and request to update last read --> write a function in utils for it.
+    cleanChatUL();
+    loadMessages({username:username, initial:true});
+    // online status, ...  get online status request
 }
 
-function addMainHeader(data){
-    let main_header = document.querySelector('#main-header');
-    main_header.innerHTML = `
-    <img src="${data['avatar']}" alt="" width="50" height="50">
-    <div data-username="${data['username']}" data-roomid="${data['roomid']}">
-        <h2 class="contact-name-main">${data['name']}</h2>
-        <h3 class="online-status">${data['online_status']}</h3>
-    </div>
-    `;
-}
 
-function loadMessages({initial=true, datetime='', msg_id=''}={}){
-    return;
+function loadMessages({username, initial=true, since=null}={}){
+    socket.send(JSON.stringify({
+        "type":"load_messages_request",
+        "username":username,
+        "initial":initial,
+        "since":since // msg id
+    }));
 }
 
 function truthSocialBotMessage({message='', code=''}={}){
-    // cleanMainHeader();
     cleanChatUL();
     cleanMainFooter();
     addMainHeader({
