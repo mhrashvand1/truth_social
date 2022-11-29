@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from activity.models import OnlineStatus, Block
 from django.utils import timezone
 from account.models import Profile
-from django.db.models import Q, Value, F, Sum, Count, Max, Min
+from django.db.models import Q, Value, F, Sum, Count, Max, Min, Case, When, DateTimeField
 
 User = get_user_model()
 
@@ -67,7 +67,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except:
             return
 
-        if await self.blocked_you(user=destination_user): # block effect on chat
+        if await self.blocked_you(user=destination_user): # block effect on chat (## oh oh  what about is_blocked???)
             await self.send(text_data=json.dumps({"type":"you_are_blocked", "blocker":to}))
             return
         
@@ -79,10 +79,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_name':self.name,
             'sender_username':self.user.username,
             # 'message_id':'', 
-        }  
-         
+        }     
         if common_room:
-            print('\n(1)\n')
             # saving message
             ...
             message['datetime'] = str(timezone.now().now()) ##
@@ -96,8 +94,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # saving message
             ...
             message['datetime'] = str(timezone.now().now()) ##
-            message['message_id'] = '' ##
-        
+            message['message_id'] = '' ##   
             # send add room msg
             await self.send_new_contact(
                 destination_user=destination_user,
@@ -108,13 +105,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(str(room.id), {"type":"chat_message_callback", "message":message, "channel_name":self.channel_name})
                     
         
+        
     async def search_username_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
+        if self.username == username.lower():
+            return  
+        
         context = dict()
         context['type'] = 'search_username' 
-        current_user = self.user   
-        if current_user.username == username.lower():
-            return    
         try:
             user = await sync_to_async(User.objects.get)(username=username)
             data = await self.serialize_user(user)
@@ -126,12 +124,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(context))
     
     
+    
     async def room_disconnect_request_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
         room = await self.get_pv_common_room(username=username)  
         if room:
             await self.channel_layer.group_discard(str(room.id), self.channel_name) 
             await self.channel_layer.group_discard(f"online_status_{username}", self.channel_name)       
+    
+    
     
     async def room_connect_request_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
@@ -140,6 +141,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(str(room.id), self.channel_name)  
             await self.channel_layer.group_add(f"online_status_{username}", self.channel_name)       
         
+        
+        
+    async def delete_contact_request_handler(self, text_data=None, byte_data=None):
+        username = text_data.get('username')
+        room = await self.get_pv_common_room(username=username)
+        
+        try:
+            await sync_to_async(room.delete)()
+        except:
+            return
+        
+        message = {
+            "type":"delete_contact",
+            "username":self.username
+        }
+        await self.channel_layer.group_send(
+            username,
+            {
+                "type":"send_delete_contact_callback",
+                "message":message,
+                "channel_name":self.channel_name
+            }
+        )
+        
+    
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -149,18 +175,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     ##############################################################################
 
     async def chat_message_callback(self, event):
-        # print('\n(2)\n')
-        # print(self.channel_name == event["channel_name"])
-        message = event["message"]
-        
-        print(dir(message))
-        
+        message = event["message"]        
         await self.send(text_data=json.dumps(message))
         
     async def send_new_contact_callback(self, event):
         message = event["message"]
         await self.send(text_data=json.dumps(message))
             
+    async def send_delete_contact_callback(self, event):
+        message = event["message"]
+        await self.send(text_data=json.dumps(message))
+        
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -202,7 +227,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return Room.objects.none()
 
         user_rooms = user_rooms.annotate(
-            last_message_time=Max('messages__created_at')
+            last_message_time=Max('messages__created_at', default=F("created_at"))
         ).order_by("-last_message_time")
         
         return user_rooms
@@ -251,7 +276,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             result['new_msg_count'] = await sync_to_async(new_messages.count)()
     
             result['username'] = str(another_user.username)
-            result['name'] = str(another_user.username)
+            result['name'] = str(another_user.name)
             result['avatar'] = await self.get_abolute_uri(another_user_profile.avatar.url)
             final_result.append(result)
             

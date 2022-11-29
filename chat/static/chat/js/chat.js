@@ -36,6 +36,7 @@ socket.onmessage = function(e) {
             break;
         case "delete_contact":
             deleteContactMessageHandler(message);
+            console.log(message);
             break;
         default:
             break;
@@ -87,7 +88,17 @@ function addContactMessageHandler(message){
 }
 
 function deleteContactMessageHandler(message){
-    
+    let username = message['username']
+    let contact = document.querySelector(`aside li[data-username=${username}]`);
+    if (contact !== null){
+        if (contact.classList.contains("selected")){
+            contactRemoveSelected();
+            cleanMainHeader();
+            cleanChatUL();
+            cleanMainFooter();
+        }
+        document.querySelector("#contacts").removeChild(contact);
+    }
 }
 
 function loadMessagesMessageHandler(message){
@@ -129,11 +140,6 @@ function searchUsernameMessageHandler(message){
         cleanChatUL();
         addMainFooter();
         addMainHeader(message);
-        // وصل شدن به روم جدید در صورت ارسال اولین پیام؟ خب این مال اینجا نیست.
-        // بعد از تشکیل روم و اضافه شدن کانتکت و فراخانی اد سلکت وصل میشه به روم جدید.
-        // البته وقتی روم تشکیل شد و به کانتکتا اضافه شد کافیه کلیک رو فرا بخونیم  خودش بقیه کارا رو انجام میدع
-        // حواست باشه کلیک رو فقط برای شخصی که اولین مسیج رو فرستاده باید بزنیم!!
-        // ینی توی جوابی که سرور میفرسته و تایپش مقلا کریت نیو روم هست یه متغییر داره به نام هو کریت روم و اگه برابر با تو بود اونوقت کلیک میشه رو کانتکت
     }
 }
 
@@ -204,14 +210,18 @@ function searchUsernameKeydownHandler(e){
 
 function contactClickHandler(e){
     let target = e.target;
-    if (target.tagName !== 'LI'){
-        target = target.parentElement.closest('li');
+    if (target.classList.contains("contact-delete-icon")){
+        return;
     }
-    if (checkClickOnNewContact(target) === false){
+    let li_target = target;
+    if (li_target.tagName !== 'LI'){
+        li_target = li_target.parentElement.closest('li');
+    }
+    if (checkClickOnNewContact(li_target) === false){
         return;
     }
     contactRemoveSelected();
-    contactAddSelected(target);
+    contactAddSelected(li_target);
 }
 
 function contactDBClickHandler(e){
@@ -221,16 +231,21 @@ function contactDBClickHandler(e){
 function deleteContactRequestHandler(e){
     let target = e.target;
     let li = target.parentElement.closest('li');
-    // if (! li.classList.contains('selected')){
-    //     return;
-    // }
     let name = li.querySelector('.contact-name-aside').innerText;
     let username = li.getAttribute('data-username');
     let result = confirm(
         `Are you sure you want to delete the contact named ${name}?\nname: ${name}\nusername: ${username}`
     );
-    console.log(result);
-    // send msg to server and request for delete contact
+    if (result){
+        socket.send(JSON.stringify({"type":"delete_contact_request", "username":username}));
+        if (li.classList.contains("selected")){
+            contactRemoveSelected();
+            cleanMainHeader();
+            cleanChatUL();
+            cleanMainFooter();
+        }
+        document.querySelector("#contacts").removeChild(li);
+    }
 }
 
 
@@ -278,14 +293,14 @@ function contactRemoveSelected(){
     if (contact !== null){
         contact.classList.remove('selected');
         let username = contact.getAttribute('data-username');
-        socket.send(JSON.stringify({'type':'room_disconnect_request', 'username': username}));
+        roomDisconnectRequest(username);
     }
 }
 function contactAddSelected(aside_li_tag){
     // TODO connect to room
     aside_li_tag.classList.add('selected');
     let username = aside_li_tag.getAttribute('data-username');
-    socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
+    roomConnectRequest(username);
     addMainFooter(); 
     addMainHeader({
         'avatar':aside_li_tag.querySelector('img').getAttribute('src'),
@@ -388,7 +403,7 @@ function addContactLI({
                 </h3>
             </div>
             <div class="contact-delete-icon-div">
-                <i class="material-icons" onclick="deleteContactRequestHandler(event)">delete</i>
+                <i class="material-icons contact-delete-icon" onclick="deleteContactRequestHandler(event)">delete</i>
             </div>
         </li>
     `.replace("USERNAME", username).replace('ROOMID', roomid
@@ -427,6 +442,13 @@ function standardDateTimeFormat(date_obj){
                     + date_obj.getMilliseconds();
     
     return datetime;
+}
+
+function roomConnectRequest(username){
+    socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
+}
+function roomDisconnectRequest(username){
+    socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
 }
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
