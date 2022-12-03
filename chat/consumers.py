@@ -34,7 +34,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             context = {
                 "type":"get_current_user_data",
                 "username":self.username,
-                "name":self.name
+                "name":self.name,
+                "avatar":self.avatar_url
             }
             await self.send(text_data=json.dumps(context))
             await self.channel_layer.group_add(self.user.username, self.channel_name) ##

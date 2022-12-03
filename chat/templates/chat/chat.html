@@ -3,9 +3,12 @@
 
 {% block aside%}
 <aside>
+    <div id="current-user-data"></div><hr>
+    <span id="search-username-guide">Enter username to start conversation</span>
     <header>
         <input type="text" placeholder="username" id='search-username' onkeydown="searchUsernameKeydownHandler(event)">
     </header>
+    <hr>
 
     <ul id="contacts"></ul>
 

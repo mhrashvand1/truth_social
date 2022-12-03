@@ -31,7 +31,8 @@ main{
 }
 
 aside header{
-	padding:30px 20px;
+	/* padding:30px 20px; */
+	padding: 5px 20px 1px 10px;
 }
 aside input{
 	width:100%;
@@ -249,4 +250,42 @@ main footer{
 	font-size: 24px;
 	color:#b80707;
 	cursor:pointer;
+}
+
+/* ///////////  */
+#current-user-data-title{  
+	color: rgb(255, 255, 255);
+	background-color: #088253;
+	border-radius: 20px;
+	display: block;
+	text-align: center;
+	font-weight:1000;
+}
+#current-user-username{
+	margin-top:5px;
+	margin-bottom: 0;
+	background-color: #5e616a;
+	font-weight: 900;
+}
+#current-user-username span{
+	color: #faf6f6;
+	font-weight: 900;
+}
+
+#current-user-name{
+	margin-top:0px;
+	margin-bottom:2px;
+	background-color: #5e616a;
+	font-weight: 900;
+}
+#current-user-name span{
+	color: #faf6f6;
+	font-weight: 900;
+}
+
+#search-username-guide{
+    background-color: #088253;
+	border-radius: 20px;
+	display: block;
+	color: rgb(255, 255, 255);
 }

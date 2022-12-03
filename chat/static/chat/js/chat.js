@@ -1,4 +1,6 @@
 let current_user_username;
+let current_user_name;
+let current_user_avatar;
 let chat_ul = $('#chat');
 let contact_ul = $('#contacts');
 
@@ -12,7 +14,10 @@ socket.onmessage = function(e) {
 
     switch (message['type']) {
         case "get_current_user_data":
-            current_user_username = message['username']
+            current_user_username = message['username'];
+            current_user_name = message['name'];
+            current_user_avatar = message['avatar'];
+            showCurrentUserData();
             break;
         case "user_not_authenticated":
             window.location.replace(
@@ -279,6 +284,16 @@ function deleteContactRequestHandler(e){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+function showCurrentUserData(){
+    let current_user_data_div = document.querySelector("#current-user-data");
+    let data = `
+        <span id="current-user-data-title">current user</span>
+        <p id="current-user-username"> username: <span>USERNAME</span> </p>
+        <p id="current-user-name"> name: <span>NAME<span> </p>
+    `.replace('USERNAME', current_user_username).replace('NAME', current_user_name);
+    current_user_data_div.innerHTML = data;
+}
+
 function cleanMainHeader(){
     document.querySelector('#main-header').innerHTML = '';
 }
@@ -448,6 +463,7 @@ function addContactLI({
 function updateLastMsgTime({target=null, datetime=''}={}){
     target.setAttribute("data-last-msg-time", datetime);
     target.querySelector(".last-msg-time").innerText = datetime.slice(0, 19);
+    $(target).prependTo("#contacts");
 }
 
 function standardDateTimeFormat(date_obj){
