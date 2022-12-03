@@ -2,6 +2,7 @@ let current_user_username;
 let current_user_name;
 let current_user_avatar;
 let chat_ul = $('#chat');
+let chat = document.getElementById("chat");
 let contact_ul = $('#contacts');
 
 
@@ -44,6 +45,11 @@ socket.onmessage = function(e) {
             break;
         case "load_messages":
             loadMessagesMessageHandler(message);
+            break;
+        case "notification":
+            notificationMessageHandler(message);
+            break;
+        case "online_status":
             break;
         default:
             break;
@@ -108,7 +114,11 @@ function deleteContactMessageHandler(message){
     }
 }
 
+let isLoadingMessages = false;
+
 function loadMessagesMessageHandler(message){
+    isLoadingMessages = true;
+
     let messages = message['results'];
     
     for (let i=0; i<messages.length; i++){
@@ -128,8 +138,18 @@ function loadMessagesMessageHandler(message){
     }
     let initial = message['initial'];
     if (initial){
-        chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
+        if (! chatIsScrollable()){
+            console.log("is not scrollable.(1)");
+        }
+        else{
+            document.getElementById("chat").scrollBy({
+                top:chat_ul.prop("scrollHeight"), 
+                behavior:"smooth"
+            });
+            scrollDownIsHandling = false;
+        }
     }
+    isLoadingMessages = false;
 }
 
 function chatMessageHandler(message){
@@ -137,6 +157,7 @@ function chatMessageHandler(message){
     if (message['sender_username'] === current_user_username){
         li_class = 'me';
     } 
+    let scrollBottom = getChatScrollBottom();
     addMessageLI({
         li_class:li_class,
         sender_username:message['sender_username'],
@@ -146,12 +167,25 @@ function chatMessageHandler(message){
         message_id:message['message_id'],
         prepend_or_append:'append'
     });
-    chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
-    // ... scroll (fix or down), ...(اینو با رویداد خود اسکرول قاطی نکن.)
-    // اگه اسکرول بیاد پایین, طبق چیزی که تو رویداد اسکرول تعریف خواهیم کرد  باید last_read هم اپدیت بشه.
+    if(li_class === 'me' || scrollBottom < 2){
+        if (! chatIsScrollable()){
+            console.log("is not scrollable.(2)");
+        }
+        else{
+            document.getElementById("chat").scrollBy({
+                top:chat_ul.prop("scrollHeight"), 
+                behavior:"smooth"
+            });
+            scrollDownIsHandling = false;
+        }
+    }
 }
 
 function notificationMessageHandler(message){
+
+}
+
+function onlineStatusMessageHandler(message){
 
 }
 
@@ -252,7 +286,16 @@ function contactClickHandler(e){
 }
 
 function contactDBClickHandler(e){
-    chat_ul.scrollTop(chat_ul.prop("scrollHeight"));
+    if (! chatIsScrollable()){
+        console.log("is not scrollable.(3)");
+    }
+    else{
+        document.getElementById("chat").scrollBy({
+            top:chat_ul.prop("scrollHeight"), 
+            behavior:"smooth"
+        });
+        scrollDownIsHandling = false;
+    }
 }
 
 function deleteContactRequestHandler(e){
@@ -275,6 +318,42 @@ function deleteContactRequestHandler(e){
     }
 }
 
+
+let lastScrollTop = 0;
+let scrollDownIsHandling = false;
+let scrollUpIsHandling = false;
+
+function chatULScrollHandler(e){
+    if (! chatIsScrollable()){
+        return;
+    }
+    
+    if (chat.scrollTop > lastScrollTop){
+        // downscroll code
+        scrollUpIsHandling = false;
+        if (getChatScrollBottom() < 50){
+            if (scrollDownIsHandling){
+                return;
+            }
+            scrollDownIsHandling = true;
+            console.log(`bottom`);
+        } 
+    }
+    else{
+        // upscroll code
+        scrollDownIsHandling = false;
+        if (chat.scrollTop < 10){
+            if (scrollUpIsHandling){
+                return
+            }
+            scrollUpIsHandling = true;
+            console.log(`top`);
+        }
+    }
+
+    lastScrollTop = chat.scrollTop <= 0 ? 0 : chat.scrollTop;
+
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -363,6 +442,9 @@ function contactAddSelected(aside_li_tag){
 
 
 function loadMessages({username, initial=true, since=null}={}){
+    if (isLoadingMessages){
+        return;
+    }
     socket.send(JSON.stringify({
         "type":"load_messages_request",
         "username":username,
@@ -466,6 +548,12 @@ function updateLastMsgTime({target=null, datetime=''}={}){
     $(target).prependTo("#contacts");
 }
 
+function updateLastRead(){
+    // get selected contact
+    //set new msg count to 0 and visibility to hide
+    // send request for update last msg time (send contact username as arg)
+}
+
 function standardDateTimeFormat(date_obj){
 
     let month = toTwoDigit(date_obj.getMonth()+1);
@@ -483,6 +571,10 @@ function standardDateTimeFormat(date_obj){
                     + date_obj.getMilliseconds();
     
     return datetime;
+}
+
+function getOnlineStatus(username){
+
 }
 
 function roomConnectRequest(username){
@@ -509,4 +601,16 @@ function toTwoDigit(num){
         return number;
     }
     return "0" + number;
+}
+
+function getChatScrollBottom(){
+    // return chat.scrollHeight - (chat.scrollTop + chat.clientHeight)
+    return (chat.scrollHeight - chat.clientHeight) - chat.scrollTop;
+}
+
+function chatIsScrollable(){
+    if (chat.scrollHeight > chat.clientHeight){
+        return true;
+    }
+    return false;
 }
