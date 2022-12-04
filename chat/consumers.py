@@ -38,11 +38,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "avatar":self.avatar_url
             }
             await self.send(text_data=json.dumps(context))
-            await self.channel_layer.group_add(self.user.username, self.channel_name) ##
+            await self.channel_layer.group_add(self.user.username, self.channel_name) 
             await self.send_contacts()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.user.username, self.channel_name) ##    
+        await self.channel_layer.group_discard(self.user.username, self.channel_name)    
     
     async def receive(self, text_data=None, bytes_data=None):
         text_data = json.loads(text_data)
@@ -87,10 +87,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )   
             message['datetime'] = str(msg_obj.created_at.astimezone(timezone.get_current_timezone()))
             message['message_id'] = str(msg_obj.id)
-            # group send msg
-            await self.channel_layer.group_send(str(common_room.id), {"type":"chat_message_callback", "message":message, "channel_name":self.channel_name})
             # send notification
-            ...
+            notification_message = {
+                "type":"notification",
+                "sub_type":"message_notification",
+                "username":self.username,
+                "datetime":message['datetime']
+            }
+            await self.channel_layer.group_send(to, {"type":"send_notification_callback", "message":notification_message, "channel_name":self.channel_name})
+            # group send msg
+            await self.channel_layer.group_send(str(common_room.id), {"type":"send_chat_message_callback", "message":message, "channel_name":self.channel_name})
         else:
             room = await self.create_pv_room(user1=self.user, user2=destination_user)
             # saving message
@@ -100,7 +106,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message['datetime'] = str(msg_obj.created_at.astimezone(timezone.get_current_timezone()))
             message['message_id'] = str(msg_obj.id)
             # group send msg
-            await self.channel_layer.group_send(str(room.id), {"type":"chat_message_callback", "message":message, "channel_name":self.channel_name})
+            await self.channel_layer.group_send(str(room.id), {"type":"send_chat_message_callback", "message":message, "channel_name":self.channel_name})
             # send add room msg
             await self.send_new_contact(
                 destination_user=destination_user,
@@ -166,8 +172,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
         
-        
-        
+            
         
     async def load_messages_request_handler(self, text_data=None, byte_data=None):
         username = text_data.get("username")
@@ -204,6 +209,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(context))
         
     
+    
+    async def update_last_read_handler(self, text_data=None, byte_data=None):
+        username = text_data.get("username")
+        room = await self.get_pv_common_room(username=username)
+        if not room:
+            return 
+        
+        last_msg = await sync_to_async(room.messages.last)()
+        if not last_msg:
+            return
+        last_msg_time = last_msg.created_at
+        
+        room_user_obj = await sync_to_async(self.get_room_user_obj)(room=room)
+        room_user_obj.last_read = last_msg_time
+        await sync_to_async(room_user_obj.save)()
+        
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -212,7 +233,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     ##############################################################################
     ##############################################################################
 
-    async def chat_message_callback(self, event):
+    async def send_chat_message_callback(self, event):
         message = event["message"]        
         await self.send(text_data=json.dumps(message))
         
@@ -224,6 +245,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         await self.send(text_data=json.dumps(message))
         
+    async def send_notification_callback(self, event):
+        message = event["message"]
+        await self.send(text_data=json.dumps(message))
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -373,3 +397,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
     def get_message_author(self, msg):
         return msg.author
+    
+    def get_room_user_obj(self, room):
+        try:
+            room_user = RoomUser.objects.get(room=room, user=self.user)
+            return room_user
+        except:
+            return

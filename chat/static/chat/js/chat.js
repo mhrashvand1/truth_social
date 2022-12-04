@@ -93,7 +93,7 @@ function addContactMessageHandler(message){
         prepend_or_append:"prepend"
     });
     if (message['actor']===current_user_username){
-        let contact = document.querySelector(`aside li[data-username=${message['username']}]`);
+        let contact = document.querySelector(`aside li[data-username="${message['username']}"]`);
         if (contact !== null){
             contact.click();
         }
@@ -102,7 +102,7 @@ function addContactMessageHandler(message){
 
 function deleteContactMessageHandler(message){
     let username = message['username']
-    let contact = document.querySelector(`aside li[data-username=${username}]`);
+    let contact = document.querySelector(`aside li[data-username="${username}"]`);
     if (contact !== null){
         if (contact.classList.contains("selected")){
             contactRemoveSelected();
@@ -122,6 +122,8 @@ function loadMessagesMessageHandler(message){
     let messages = message['results'];
     
     if (! messages.length > 0){
+        isLoadingMessages = false;
+        scrollUpIsHandling = false;
         return;
     }
     if ((! initial)){
@@ -149,6 +151,7 @@ function loadMessagesMessageHandler(message){
     if (initial){
         if (! chatIsScrollable()){
             console.log("is not scrollable.(1)");
+            updateLastRead();
         }
         else{
             scrollDownIsHandling = false;
@@ -177,9 +180,10 @@ function chatMessageHandler(message){
         message_id:message['message_id'],
         prepend_or_append:'append'
     });
-    if(li_class === 'me' || scrollBottom < 2){
+    if(li_class === 'me'){
         if (! chatIsScrollable()){
-            console.log("is not scrollable.(2)");
+            console.log("is not scrollable.(2), li_class is me");
+            updateLastRead();
         }
         else{
             scrollDownIsHandling = false;
@@ -189,10 +193,32 @@ function chatMessageHandler(message){
             });
         }
     }
+    else if (li_class === "you" && scrollBottom < 2){
+        if (! chatIsScrollable()){
+            console.log("is not scrollable.(2), li class is you");
+            updateLastRead();
+        }
+        else{
+            scrollDownIsHandling = false;
+            document.getElementById("chat").scrollBy({
+                top:chat_ul.prop("scrollHeight"), 
+            });
+        } 
+    }
+    else{
+        console.log("scrollBottom >= 2 so is scrollable, li class is you");     
+    }
 }
 
 function notificationMessageHandler(message){
-
+    // let sun_type = message["sub_type"];
+    let username = message["username"];
+    let contact = document.querySelector(`aside li[data-username="${username}"]`)
+    let new_msg_count_tag = contact.querySelector(".new-messages-number");
+    new_msg_count_tag.innerText = (Number(new_msg_count_tag.innerText) + 1).toString();
+    new_msg_count_tag.style.visibility = "visible";
+    let datetime = message["datetime"];
+    updateLastMsgTime({target:contact, datetime:datetime});
 }
 
 function onlineStatusMessageHandler(message){
@@ -200,7 +226,6 @@ function onlineStatusMessageHandler(message){
 }
 
 function searchUsernameMessageHandler(message){
-    console.log(message);
     if (message['status'] === 404){
         truthSocialBotMessage({
             message:`user with username ${message['username']} not found.`,
@@ -246,7 +271,7 @@ function msgSubmitClickHandler(e){
     socket.send(JSON.stringify({'type':'chat_message', 'text': message, 'to':username}));
     messageInputDom.value = '';
 
-    selected_contact = document.querySelector("aside li.selected");
+    let selected_contact = document.querySelector("aside li.selected");
     if (selected_contact !== null){
         let currentdate = new Date();
         let datetime = standardDateTimeFormat(currentdate);
@@ -268,7 +293,7 @@ function searchUsernameKeydownHandler(e){
             search_username.value = '';
             return;
         }
-        let contact = document.querySelector(`aside li[data-username=${search_username.value}]`);
+        let contact = document.querySelector(`aside li[data-username="${search_username.value}"]`);
         if (contact !== null){
             contact.click();
         }
@@ -298,6 +323,7 @@ function contactClickHandler(e){
 function contactDBClickHandler(e){
     if (! chatIsScrollable()){
         console.log("is not scrollable.(3)");
+        updateLastRead();
     }
     else{
         scrollDownIsHandling = false;
@@ -347,6 +373,7 @@ function chatULScrollHandler(e){
             }
             scrollDownIsHandling = true;
             console.log(`bottom`); ///
+            updateLastRead();
         } 
     }
     else{
@@ -487,7 +514,6 @@ function truthSocialBotMessage({message='', code=''}={}){
     });
     let currentdate = new Date(); 
     let datetime = standardDateTimeFormat(currentdate);
-    console.log(datetime);
     let text = `${message} ${code}`;
     addMessageLI({
         li_class:'you',
@@ -578,9 +604,16 @@ function updateLastMsgTime({target=null, datetime=''}={}){
 }
 
 function updateLastRead(){
-    // get selected contact
-    //set new msg count to 0 and visibility to hide
-    // send request for update last msg time (send contact username as arg)
+    let selected_contact = document.querySelector("aside li.selected");
+    let username = selected_contact.getAttribute("data-username");
+    socket.send(JSON.stringify({
+        "type":"update_last_read", 
+        "username":username,
+        // TODO: In the future we can we can read message one by one, so must to send datetime.
+    }));
+    let new_msg_count_tag = selected_contact.querySelector(".new-messages-number");
+    new_msg_count_tag.innerText = "0";
+    new_msg_count_tag.style.visibility = "hidden";
 }
 
 function standardDateTimeFormat(date_obj){
@@ -610,7 +643,7 @@ function roomConnectRequest(username){
     socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
 }
 function roomDisconnectRequest(username){
-    socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
+    socket.send(JSON.stringify({'type':'room_disconnect_request', 'username': username}));
 }
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
