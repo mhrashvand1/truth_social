@@ -180,12 +180,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         
         if initial: 
-            messages = room.messages.order_by("-id")[:20]
+            messages = room.messages.order_by("-id")[:10]  # min 10 because page must be scrollable.
         else:
             since = text_data.get("since")
-            if not isinstance(since, int) or since < 1:
+            if not since.isnumeric():
                 return
-            messages = room.messages.filter(id__lt=since).order_by("-id")[:20]
+            messages = room.messages.filter(id__lt=int(since)).order_by("-id")[:7]
             
         msg_list = await sync_to_async(list)(messages)        
         final_result = list()

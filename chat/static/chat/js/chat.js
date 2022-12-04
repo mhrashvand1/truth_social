@@ -118,9 +118,18 @@ let isLoadingMessages = false;
 
 function loadMessagesMessageHandler(message){
     isLoadingMessages = true;
-
+    let initial = message['initial'];
     let messages = message['results'];
     
+    if (! messages.length > 0){
+        return;
+    }
+    if ((! initial)){
+        document.getElementById("chat").scrollBy({
+            top:chat.scrollTop + 1, 
+        }); 
+    }
+
     for (let i=0; i<messages.length; i++){
         let li_class = 'you';
         if (messages[i]['sender_username'] === current_user_username){
@@ -136,20 +145,21 @@ function loadMessagesMessageHandler(message){
             prepend_or_append:'prepend'
         });
     }
-    let initial = message['initial'];
+    
     if (initial){
         if (! chatIsScrollable()){
             console.log("is not scrollable.(1)");
         }
         else{
+            scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
                 top:chat_ul.prop("scrollHeight"), 
                 behavior:"smooth"
             });
-            scrollDownIsHandling = false;
         }
     }
     isLoadingMessages = false;
+    scrollUpIsHandling = false;
 }
 
 function chatMessageHandler(message){
@@ -172,11 +182,11 @@ function chatMessageHandler(message){
             console.log("is not scrollable.(2)");
         }
         else{
+            scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
                 top:chat_ul.prop("scrollHeight"), 
                 behavior:"smooth"
             });
-            scrollDownIsHandling = false;
         }
     }
 }
@@ -290,11 +300,11 @@ function contactDBClickHandler(e){
         console.log("is not scrollable.(3)");
     }
     else{
+        scrollDownIsHandling = false;
         document.getElementById("chat").scrollBy({
             top:chat_ul.prop("scrollHeight"), 
             behavior:"smooth"
         });
-        scrollDownIsHandling = false;
     }
 }
 
@@ -336,7 +346,7 @@ function chatULScrollHandler(e){
                 return;
             }
             scrollDownIsHandling = true;
-            console.log(`bottom`);
+            console.log(`bottom`); ///
         } 
     }
     else{
@@ -347,7 +357,17 @@ function chatULScrollHandler(e){
                 return
             }
             scrollUpIsHandling = true;
-            console.log(`top`);
+            console.log(`top`); 
+            //////////////// load messages ////////
+            let contact = document.querySelector(`aside li.selected`);
+            if (contact === null){
+                return;
+            }
+            loadMessages({
+                username:contact.getAttribute("data-username"),
+                initial:false,
+                since:chat.firstElementChild.getAttribute("data-message-id")
+            });
         }
     }
 
@@ -358,7 +378,11 @@ function chatULScrollHandler(e){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// utils ///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -479,6 +503,7 @@ function addMessageLI({
     sender_username='', text='', prepend_or_append='append'
 }={})
 {
+    let time = Array.isArray(datetime) ? datetime[0] : datetime;
     let color = 'green';
     if (li_class === 'me'){
         color = 'blue';
@@ -497,9 +522,9 @@ function addMessageLI({
         </div>
     </li>
     `.replace('LICLASS', li_class).replace('SENDERUSERNAME', sender_username
-    ).replace('DATETIME', datetime).replace('SENDERNAME', sender_name
+    ).replace('DATETIME', time).replace('SENDERNAME', sender_name
     ).replace('COLOR', color).replace('MESSAGETEXT', text
-    ).replace('MESSAGEID', message_id).replace('SHOWDATETIME', datetime.slice(0, 19)) 
+    ).replace('MESSAGEID', message_id).replace('SHOWDATETIME', time.slice(0, 19)) 
 
     if (prepend_or_append === 'append'){
         chat_ul.append(li);
@@ -521,7 +546,7 @@ function addContactLI({
             <div>
                 <h2 class="contact-name-aside">NAME</h2>
                 <h3>
-                    <span class="new-messages-number">NEWMSGCOUNT</span> &nbsp&nbsp <span class="last-msg-time">VISUALLASTMSGTIME</span>
+                    <span class="new-messages-number" style="visibility:NMCVISIBILITY;">NEWMSGCOUNT</span> &nbsp&nbsp <span class="last-msg-time">VISUALLASTMSGTIME</span>
                 </h3>
             </div>
             <div class="contact-delete-icon-div">
@@ -532,7 +557,11 @@ function addContactLI({
     ).replace('AVATAR', avatar).replace('NAME', name
     ).replace('NEWMSGCOUNT', new_msg_count
     ).replace('LASTMSGTIME'. last_msg_time
-    ).replace('VISUALLASTMSGTIME', last_msg_time.slice(0, 19))
+    ).replace('VISUALLASTMSGTIME', last_msg_time.slice(0, 19)
+    ).replace(
+        "NMCVISIBILITY", 
+        new_msg_count > 0 ? "visible" : "hidden"
+    );
 
     if (prepend_or_append === 'append'){
         contact_ul.append(li);
