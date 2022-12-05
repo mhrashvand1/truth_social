@@ -156,7 +156,7 @@ function loadMessagesMessageHandler(message){
         else{
             scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
-                top:chat_ul.prop("scrollHeight"), 
+                top:chat.scrollHeight, 
                 behavior:"smooth"
             });
         }
@@ -367,7 +367,7 @@ function chatULScrollHandler(e){
     if (chat.scrollTop > lastScrollTop){
         // downscroll code
         scrollUpIsHandling = false;
-        if (getChatScrollBottom() < 50){
+        if (getChatScrollBottom() < 70){
             if (scrollDownIsHandling){
                 return;
             }
@@ -379,7 +379,7 @@ function chatULScrollHandler(e){
     else{
         // upscroll code
         scrollDownIsHandling = false;
-        if (chat.scrollTop < 10){
+        if (chat.scrollTop === 0){
             if (scrollUpIsHandling){
                 return
             }
