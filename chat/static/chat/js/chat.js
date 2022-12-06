@@ -52,6 +52,9 @@ socket.onmessage = function(e) {
         case "online_status":
             onlineStatusMessageHandler(message);
             break;
+        case "is_typing_report":
+            isTypingReportMessageHandler({message:message, timeout:1700});
+            break;
         default:
             break;
     }
@@ -231,6 +234,47 @@ function onlineStatusMessageHandler(message){
     }
 }
 
+
+let is_typing_enable = false
+let extra_time_out = 0;
+
+function isTypingReportMessageHandler({message, timeout=2000}){
+    let username = message['username'];
+    let is_typing_span = document.querySelector(`#main-header div[data-username="${username}"] .is-typing-status`);
+    if (! is_typing_span){return;}
+
+    if (is_typing_enable){
+        extra_time_out += timeout;
+        return;
+    }
+
+    makeIsTypingVisible(is_typing_span);
+    is_typing_enable = true;
+
+    setTimeout(
+        function callback(){
+            if (extra_time_out > 0){
+                is_typing_enable = false;
+                extra_time_out = 0; 
+                isTypingReportMessageHandler({message:message, timeout:extra_time_out});
+            }
+            else{
+                makeIsTypingHidden(is_typing_span);       
+                is_typing_enable = false;
+                extra_time_out = 0;  
+            }          
+        },
+        timeout
+    )
+}
+
+function makeIsTypingVisible(is_typing_span){
+    is_typing_span.style.visibility = "visible";
+}
+function makeIsTypingHidden(is_typing_span){
+    is_typing_span.style.visibility = "hidden";
+}
+
 function searchUsernameResultMessageHandler(message){
     if (message['status'] === 404){
         truthSocialBotMessage({
@@ -266,6 +310,15 @@ function msgInputKeydownHandler(e){
     if (keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
         document.querySelector('#msg-submit').click();
+    }
+    else{
+        let selected_contact = document.querySelector(`aside li.selected`);
+        if (! selected_contact){
+            return;
+        }
+        socket.send(JSON.stringify({
+            "type":"is_typing_report"
+        }))
     }
 }
 function msgSubmitClickHandler(e){
@@ -459,6 +512,7 @@ function addMainHeader(data){
     <div data-username="${data['username']}" data-roomid="${data['roomid']}">
         <h2 class="contact-name-main">${data['name']}</h2>
         <h3 class="online-status">${data['online_status']}</h3>
+        <span class="is-typing-status" style="visibility:hidden;">is typing...</span>
     </div>
     `;
 }

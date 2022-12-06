@@ -257,6 +257,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
         await self.send(text_data=json.dumps(context))
         
+    async def is_typing_report_handler(self, text_data=None, byte_data=None):
+        current_room = self.current_chat.get("room")
+        if not current_room:
+            return
+        is_typing_report_message = {
+            "type":"is_typing_report",
+            "username":self.username
+        }
+        await self.channel_layer.group_send(
+            str(current_room.id),
+            {"type":"send_is_typing_report_callback", "message":is_typing_report_message, "channel_name":self.channel_name}
+        )
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -284,6 +296,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def send_online_status_callback(self, event):
         message = event["message"]
         await self.send(text_data=json.dumps(message))
+        
+    async def send_is_typing_report_callback(self, event):
+        message = event["message"]
+        if self.channel_name != event["channel_name"]:
+            await self.send(text_data=json.dumps(message))
         
     ##############################################################################   
     ##############################################################################
