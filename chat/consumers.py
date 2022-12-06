@@ -32,7 +32,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.name = self.user.name
             self.profile = await sync_to_async(self.get_user_profile)(self.user)
             self.avatar_url = await self.get_abolute_uri(self.profile.avatar.url)
-            self.current_chat = dict() #######################################
+            self.current_chat = dict()
             user_data = {
                 "type":"get_current_user_data",
                 "username":self.username,
@@ -42,11 +42,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(user_data))
             await self.channel_layer.group_add(self.user.username, self.channel_name) 
             await self.send_contacts()
+            await sync_to_async(self.change_online_status)(user=self.user, status="online")
+            online_status_message = {"type":"online_status", "username":self.username, "status":"online"}
+            await self.channel_layer.group_send(
+                f"online_status_{self.username}",
+                {"type":"send_online_status_callback", "message":online_status_message, "channel_name":self.channel_name}
+            )
 
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.user.username, self.channel_name)    
-   
+        await self.channel_layer.group_discard(self.user.username, self.channel_name) 
+        await sync_to_async(self.change_online_status)(user=self.user, status="offline")
+        online_status_message = {"type":"online_status", "username":self.username, "status":"offline"}
+        await self.channel_layer.group_send(
+            f"online_status_{self.username}",
+            {"type":"send_online_status_callback", "message":online_status_message, "channel_name":self.channel_name}
+        )   
     
     async def receive(self, text_data=None, bytes_data=None):
         text_data = json.loads(text_data)
@@ -126,7 +137,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.username == username.lower():
             return    
         context = dict()
-        context['type'] = 'search_username' 
+        context['type'] = 'search_username_result' 
         user = await sync_to_async(self.get_user)(username=username)
         if user:
             data = await self.serialize_user(user)
@@ -141,10 +152,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def room_disconnect_request_handler(self, text_data=None, byte_data=None):
         username = text_data.get('username')
-        room = await sync_to_async(self.get_pv_common_room)(username=username)  
-        if room:
+        current_room = self.current_chat.get("room")
+        current_contact_username = self.current_chat.get("contact_username")  
+        if (current_contact_username == username and current_room):
             self.current_chat = dict()
-            await self.channel_layer.group_discard(str(room.id), self.channel_name) 
+            await self.channel_layer.group_discard(str(current_room.id), self.channel_name) 
             await self.channel_layer.group_discard(f"online_status_{username}", self.channel_name)       
       
     
@@ -166,10 +178,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not room:
             return
         await sync_to_async(room.delete)() 
-        
-        if self.current_chat["contact_username"] == username:
-            self.current_chat = dict()
-            
         message = {"type":"delete_contact","username":self.username}
         await self.channel_layer.group_send(
             username,
@@ -179,8 +187,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "channel_name":self.channel_name
             }
         )
-        
-            
+              
         
     async def load_messages_request_handler(self, text_data=None, byte_data=None):
         initial = text_data.get("initial")
@@ -236,6 +243,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room_user_obj.last_read = last_msg_time
         await sync_to_async(room_user_obj.save)()
         
+        
+    async def get_online_status_handler(self, text_data=None, byte_data=None):
+        username = text_data.get("username")
+        user = await sync_to_async(self.get_user)(username=username)
+        if not user:
+            return
+        status = await sync_to_async(self.get_online_status)(user=user)
+        context = {
+            "type":"online_status",
+            "username":username,
+            "status":status
+        }
+        await self.send(text_data=json.dumps(context))
+        
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -260,6 +281,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         await self.send(text_data=json.dumps(message))
      
+    async def send_online_status_callback(self, event):
+        message = event["message"]
+        await self.send(text_data=json.dumps(message))
+        
     ##############################################################################   
     ##############################################################################
     ##############################################################################
@@ -275,7 +300,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         result['name'], result['username'] = user.name, user.username    
         profile = await sync_to_async(self.get_user_profile)(user)
         result['avatar'] = await self.get_abolute_uri(url=profile.avatar.url)
-        result['online_status'] = await sync_to_async(self.get_online_status)(user=user)     
         return result
     
     
@@ -432,7 +456,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             online_status_obj = user.online_status
         except OnlineStatus.DoesNotExist:
             online_status_obj = OnlineStatus.objects.create(user=user)
-        new_status = get_reverse_dict(dict(OnlineStatus.status_choices))(status)
+        new_status = get_reverse_dict(dict(OnlineStatus.status_choices))[status]
         online_status_obj.status = new_status
         online_status_obj.save()
          

@@ -31,8 +31,8 @@ socket.onmessage = function(e) {
         case "chat_message":
             chatMessageHandler(message);
             break;
-        case "search_username":
-            searchUsernameMessageHandler(message);
+        case "search_username_result":
+            searchUsernameResultMessageHandler(message);
             break;
         case "you_are_blocked":
             showBlockMessageHandler(message);
@@ -50,6 +50,7 @@ socket.onmessage = function(e) {
             notificationMessageHandler(message);
             break;
         case "online_status":
+            onlineStatusMessageHandler(message);
             break;
         default:
             break;
@@ -222,10 +223,15 @@ function notificationMessageHandler(message){
 }
 
 function onlineStatusMessageHandler(message){
-
+    let username = message['username'];
+    let status = message['status'];
+    let online_status_tag = document.querySelector(`#main-header div[data-username="${username}"] .online-status`);
+    if (online_status_tag){
+        online_status_tag.innerText = status;
+    }
 }
 
-function searchUsernameMessageHandler(message){
+function searchUsernameResultMessageHandler(message){
     if (message['status'] === 404){
         truthSocialBotMessage({
             message:`user with username ${message['username']} not found.`,
@@ -236,6 +242,7 @@ function searchUsernameMessageHandler(message){
         cleanChatUL();
         addMainFooter();
         addMainHeader(message);
+        getOnlineStatus(message['username']);
     }
 }
 
@@ -488,7 +495,7 @@ function contactAddSelected(aside_li_tag){
     });
     cleanChatUL();
     loadMessages({username:username, initial:true});
-    // online status, ...  get online status request
+    getOnlineStatus(username);
 }
 
 
@@ -636,7 +643,10 @@ function standardDateTimeFormat(date_obj){
 }
 
 function getOnlineStatus(username){
-
+    socket.send(JSON.stringify({
+        "type":"get_online_status",
+        "username":username
+    }));
 }
 
 function roomConnectRequest(username){
