@@ -34,8 +34,8 @@ socket.onmessage = function(e) {
         case "search_username_result":
             searchUsernameResultMessageHandler(message);
             break;
-        case "you_are_blocked":
-            showBlockMessageHandler(message);
+        case "block_error_sending_message":
+            showBlockErrorMessageHandler(message);
             break;
         case "add_contact":
             addContactMessageHandler(message);
@@ -55,6 +55,9 @@ socket.onmessage = function(e) {
         case "is_typing_report":
             isTypingReportMessageHandler({message:message, timeout:1700});
             break;
+        case "block_status":
+            blockStatusMessageHandler(message);
+            break;
         default:
             break;
     }
@@ -67,7 +70,12 @@ socket.onclose = function(e) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// socket message handlers /////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,9 +106,23 @@ function addContactMessageHandler(message){
     });
     if (message['actor']===current_user_username){
         let contact = document.querySelector(`aside li[data-username="${message['username']}"]`);
-        if (contact !== null){
+        if (contact){
             contact.click();
         }
+    }
+    else{
+        header_user_data_div = document.querySelector(".header-user-data-div");
+        if (!header_user_data_div){return;}
+
+        console.log(header_user_data_div.getAttribute("data-username"));
+        console.log(message['username']);
+
+        if (header_user_data_div.getAttribute("data-username") === message['username']){
+            let contact = document.querySelector(`aside li[data-username="${message['username']}"]`);
+            if (contact){
+                contact.click();
+            } 
+        }      
     }
 }
 
@@ -153,10 +175,7 @@ function loadMessagesMessageHandler(message){
     }
     
     if (initial){
-        if (! chatIsScrollable()){
-            console.log("is not scrollable.(1)");
-            updateLastRead();
-        }
+        if (! chatIsScrollable()){updateLastRead();}
         else{
             scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
@@ -185,10 +204,7 @@ function chatMessageHandler(message){
         prepend_or_append:'append'
     });
     if(li_class === 'me'){
-        if (! chatIsScrollable()){
-            console.log("is not scrollable.(2), li_class is me");
-            updateLastRead();
-        }
+        if (! chatIsScrollable()){updateLastRead();}
         else{
             scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
@@ -198,19 +214,13 @@ function chatMessageHandler(message){
         }
     }
     else if (li_class === "you" && scrollBottom < 2){
-        if (! chatIsScrollable()){
-            console.log("is not scrollable.(2), li class is you");
-            updateLastRead();
-        }
+        if (! chatIsScrollable()){updateLastRead();}
         else{
             scrollDownIsHandling = false;
             document.getElementById("chat").scrollBy({
                 top:chat_ul.prop("scrollHeight"), 
             });
         } 
-    }
-    else{
-        console.log("scrollBottom >= 2 so is scrollable, li class is you");     
     }
 }
 
@@ -228,7 +238,7 @@ function notificationMessageHandler(message){
 function onlineStatusMessageHandler(message){
     let username = message['username'];
     let status = message['status'];
-    let online_status_tag = document.querySelector(`#main-header div[data-username="${username}"] .online-status`);
+    let online_status_tag = document.querySelector(`.header-user-data-div[data-username="${username}"] .online-status`);
     if (online_status_tag){
         online_status_tag.innerText = status;
     }
@@ -240,7 +250,7 @@ let extra_time_out = 0;
 
 function isTypingReportMessageHandler({message, timeout=2000}){
     let username = message['username'];
-    let is_typing_span = document.querySelector(`#main-header div[data-username="${username}"] .is-typing-status`);
+    let is_typing_span = document.querySelector(`.header-user-data-div[data-username="${username}"] .is-typing-status`);
     if (! is_typing_span){return;}
 
     if (is_typing_enable){
@@ -284,19 +294,50 @@ function searchUsernameResultMessageHandler(message){
     }
     else{
         cleanChatUL();
-        addMainFooter();
         addMainHeader(message);
         getOnlineStatus(message['username']);
+        getBlockStatus(message['username'])
     }
 }
 
-function showBlockMessageHandler(message){
-    let blocker_username = message['blocker'];
-    truthSocialBotMessage({
-        message:`${blocker_username} has blocked you :((`,
-        code: '403'
-    });
+function showBlockErrorMessageHandler(message){
+    let sub_type = message['sub_type'];
+    let username = message['username'];
+    switch (sub_type){
+        case "is_blocked":
+            truthSocialBotMessage({
+                message:`${username} is blocked, unblock first.`,
+                code: '403'
+            });   
+            break;
+        case "blocked_you":
+            truthSocialBotMessage({
+                message:`${username} has blocked you :((`,
+                code: '403'
+            });
+            break;
+        default:
+            break;
+    }
 }
+
+function blockStatusMessageHandler(message){
+    let is_blocked = message['is_blocked'];
+    let block_status_div = document.querySelector(".block-status");
+    if (is_blocked){
+        block_status_div.setAttribute("data-is-blocked", "true");
+        block_status_div.querySelector(".unblock-button").style.display = ""; 
+        cleanMainFooter();
+    }
+    else{
+        block_status_div.setAttribute("data-is-blocked", "false");
+        block_status_div.querySelector(".block-button").style.display = "";
+        addMainFooter();
+    }
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,6 +345,9 @@ function showBlockMessageHandler(message){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 function msgInputKeydownHandler(e){
     const keyCode = e.which || e.keyCode;   
@@ -381,10 +425,7 @@ function contactClickHandler(e){
 }
 
 function contactDBClickHandler(e){
-    if (! chatIsScrollable()){
-        console.log("is not scrollable.(3)");
-        updateLastRead();
-    }
+    if (! chatIsScrollable()){updateLastRead();}
     else{
         scrollDownIsHandling = false;
         document.getElementById("chat").scrollBy({
@@ -432,7 +473,7 @@ function chatULScrollHandler(e){
                 return;
             }
             scrollDownIsHandling = true;
-            console.log(`bottom`); ///
+            console.log(`bottom`);
             updateLastRead();
         } 
     }
@@ -462,6 +503,31 @@ function chatULScrollHandler(e){
 
 }
 
+function blockButtonClickHandler(e){
+    let block_status_div = document.querySelector(".block-status");
+    block_status_div.setAttribute("data-is-blocked", "true");
+    block_status_div.querySelector(".block-button").style.display = "none"
+    block_status_div.querySelector(".unblock-button").style.display = ""
+    cleanMainFooter();
+    let username = document.querySelector(".header-user-data-div").getAttribute("data-username");
+    socket.send(JSON.stringify({
+        "type":"block_user",
+        "username":username
+    }))
+}
+
+function unBlockButtonClickHandler(e){
+    let block_status_div = document.querySelector(".block-status");
+    block_status_div.setAttribute("data-is-blocked", "false");
+    block_status_div.querySelector(".block-button").style.display = ""
+    block_status_div.querySelector(".unblock-button").style.display = "none"
+    addMainFooter();
+    let username = document.querySelector(".header-user-data-div").getAttribute("data-username");
+    socket.send(JSON.stringify({
+        "type":"unblock_user",
+        "username":username
+    }))
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -509,13 +575,18 @@ function addMainHeader(data){
     let main_header = document.querySelector('#main-header');
     main_header.innerHTML = `
     <img src="${data['avatar']}" alt="" width="50" height="50">
-    <div data-username="${data['username']}" data-roomid="${data['roomid']}">
+    <div class="header-user-data-div" data-username="${data['username']}" data-roomid="${data['roomid']}">
         <h2 class="contact-name-main">${data['name']}</h2>
         <h3 class="online-status">${data['online_status']}</h3>
         <span class="is-typing-status" style="visibility:hidden;">is typing...</span>
     </div>
+    <div class="block-status" data-is-blocked=""> 
+        <span class="block-button" onclick="blockButtonClickHandler(event)" style="display:none;">block</span>
+        <span class="unblock-button" onclick="unBlockButtonClickHandler(event)" style="display:none;">unblock</span>
+    </div>
     `;
 }
+
 
 function checkClickOnNewContact(aside_li_tag){
     let contact = document.querySelector(`aside li.selected`);
@@ -539,7 +610,7 @@ function contactAddSelected(aside_li_tag){
     aside_li_tag.classList.add('selected');
     let username = aside_li_tag.getAttribute('data-username');
     roomConnectRequest(username);
-    addMainFooter(); 
+    // addMainFooter(); 
     addMainHeader({
         'avatar':aside_li_tag.querySelector('img').getAttribute('src'),
         'username':username,
@@ -550,6 +621,7 @@ function contactAddSelected(aside_li_tag){
     cleanChatUL();
     loadMessages({username:username, initial:true});
     getOnlineStatus(username);
+    getBlockStatus(username);
 }
 
 
@@ -566,6 +638,7 @@ function loadMessages({username, initial=true, since=null}={}){
 }
 
 function truthSocialBotMessage({message='', code=''}={}){
+    contactRemoveSelected();
     cleanChatUL();
     cleanMainFooter();
     addMainHeader({
@@ -703,17 +776,20 @@ function getOnlineStatus(username){
     }));
 }
 
+function getBlockStatus(username){
+    socket.send(JSON.stringify({
+        "type":"get_block_status",
+        "username":username
+    }));
+}
+
 function roomConnectRequest(username){
     socket.send(JSON.stringify({'type':'room_connect_request', 'username': username}));
 }
 function roomDisconnectRequest(username){
     socket.send(JSON.stringify({'type':'room_disconnect_request', 'username': username}));
 }
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-//////////////////////////// extra //////////////////////////////
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
+
 
 // let contact_li = $('aside li').click(function() {
 //     $(contact_li).removeClass('selected');
@@ -730,7 +806,6 @@ function toTwoDigit(num){
 }
 
 function getChatScrollBottom(){
-    // return chat.scrollHeight - (chat.scrollTop + chat.clientHeight)
     return (chat.scrollHeight - chat.clientHeight) - chat.scrollTop;
 }
 

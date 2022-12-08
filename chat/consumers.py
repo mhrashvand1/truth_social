@@ -1,15 +1,15 @@
-from channels.consumer import AsyncConsumer
 import json
-from asgiref.sync import async_to_sync, sync_to_async
-from channels.exceptions import StopConsumer
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
 from chat.models import Room, Message, RoomUser
 from django.contrib.auth import get_user_model
 from activity.models import OnlineStatus, Block
 from django.utils import timezone
 from account.models import Profile
-from django.db.models import Q, Value, F, Sum, Count, Max, Min, Case, When, DateTimeField
+from django.db.models import Q, F, Max
 from common.utils import get_reverse_dict
+from activity import signals
+from activity.views import BlockViewSet
 
 User = get_user_model()
 
@@ -33,6 +33,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.profile = await sync_to_async(self.get_user_profile)(self.user)
             self.avatar_url = await self.get_abolute_uri(self.profile.avatar.url)
             self.current_chat = dict()
+            await self.channel_layer.group_add(self.username, self.channel_name) 
             user_data = {
                 "type":"get_current_user_data",
                 "username":self.username,
@@ -40,7 +41,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "avatar":self.avatar_url
             }
             await self.send(text_data=json.dumps(user_data))
-            await self.channel_layer.group_add(self.user.username, self.channel_name) 
             await self.send_contacts()
             await sync_to_async(self.change_online_status)(user=self.user, status="online")
             online_status_message = {"type":"online_status", "username":self.username, "status":"online"}
@@ -49,15 +49,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {"type":"send_online_status_callback", "message":online_status_message, "channel_name":self.channel_name}
             )
 
-
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.user.username, self.channel_name) 
-        await sync_to_async(self.change_online_status)(user=self.user, status="offline")
-        online_status_message = {"type":"online_status", "username":self.username, "status":"offline"}
-        await self.channel_layer.group_send(
-            f"online_status_{self.username}",
-            {"type":"send_online_status_callback", "message":online_status_message, "channel_name":self.channel_name}
-        )   
+        if self.user.is_authenticated:
+            await self.channel_layer.group_discard(self.username, self.channel_name) 
+            await sync_to_async(self.change_online_status)(user=self.user, status="offline")
+            online_status_message = {"type":"online_status", "username":self.username, "status":"offline"}
+            await self.channel_layer.group_send(
+                f"online_status_{self.username}",
+                {"type":"send_online_status_callback", "message":online_status_message, "channel_name":self.channel_name}
+            )   
     
     async def receive(self, text_data=None, bytes_data=None):
         text_data = json.loads(text_data)
@@ -83,8 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not destination_user:
             return
 
-        if await self.blocked_you(user=destination_user): # block effect on chat (## oh oh  what about is_blocked???)
-            await self.send(text_data=json.dumps({"type":"you_are_blocked", "blocker":to}))
+        if await self.check_block(destination_user):
             return
         
         message = {
@@ -246,10 +245,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
     async def get_online_status_handler(self, text_data=None, byte_data=None):
         username = text_data.get("username")
-        user = await sync_to_async(self.get_user)(username=username)
-        if not user:
-            return
-        status = await sync_to_async(self.get_online_status)(user=user)
+        if (self.current_chat.get("contact_username") == username):
+            status = await sync_to_async(self.get_online_status)(user=self.current_chat['contact'])
+        else:
+            user = await sync_to_async(self.get_user)(username=username)
+            if not user:
+                return
+            status = await sync_to_async(self.get_online_status)(user=user)
+        
         context = {
             "type":"online_status",
             "username":username,
@@ -257,6 +260,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
         await self.send(text_data=json.dumps(context))
         
+    
     async def is_typing_report_handler(self, text_data=None, byte_data=None):
         current_room = self.current_chat.get("room")
         if not current_room:
@@ -269,6 +273,49 @@ class ChatConsumer(AsyncWebsocketConsumer):
             str(current_room.id),
             {"type":"send_is_typing_report_callback", "message":is_typing_report_message, "channel_name":self.channel_name}
         )
+        
+        
+    async def get_block_status_handler(self, text_data=None, byte_data=None):
+        username = text_data.get("username")
+        if (self.current_chat.get("contact_username") == username):
+            is_blocked = await sync_to_async(self.is_blocked)(self.current_chat['contact'])
+        else:
+            user = await sync_to_async(self.get_user)(username=username)
+            if not user:
+                return
+            is_blocked = await sync_to_async(self.is_blocked)(user)
+        
+        context = {
+            "type":"block_status",
+            "username":username,
+            "is_blocked":is_blocked
+        }
+        await self.send(text_data=json.dumps(context))
+        
+        
+    async def block_user_handler(self, text_data=None, byte_data=None):
+        username = text_data.get("username")
+        if (self.current_chat.get("contact_username") == username):
+            target_user = self.current_chat['contact']
+        else:
+            target_user = await sync_to_async(self.get_user)(username=username)
+            if not target_user:
+                return
+            
+        await sync_to_async(self.block_user)(target_user)
+        
+        
+    async def unblock_user_handler(self, text_data=None, byte_data=None):
+        username = text_data.get("username")
+        if (self.current_chat.get("contact_username") == username):
+            target_user = self.current_chat['contact']
+        else:
+            target_user = await sync_to_async(self.get_user)(username=username)
+            if not target_user:
+                return
+            
+        await sync_to_async(self.unblock_user)(target_user)
+
     ##############################################################################
     ##############################################################################
     ##############################################################################
@@ -312,6 +359,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
     ##############################################################################
     ##############################################################################
         
+    async def check_block(self, target_user):
+        is_blocked = await sync_to_async(self.is_blocked)(target_user)
+        if is_blocked:
+            await self.send(text_data=json.dumps({
+                "type":"block_error_sending_message", 
+                "sub_type":"is_blocked",
+                "username":target_user.username
+            }))
+            return True
+        
+        blocked_you = await sync_to_async(self.blocked_you)(target_user)
+        if blocked_you:
+            await self.send(text_data=json.dumps({
+                "type":"block_error_sending_message", 
+                "sub_type":"blocked_you",
+                "username":target_user.username
+            }))
+            return True
+
+        
     async def serialize_user(self, user):
         result = dict()
         result['name'], result['username'] = user.name, user.username    
@@ -350,11 +417,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
         context = {"type":"load_contacts", "results":final_result}
         await self.send(text_data=json.dumps(context))
-         
-    async def blocked_you(self, user):  ## change to block status. move to sync methods.
-        blockings_queryset = user.blockings.filter(username=self.username)
-        result = await sync_to_async(blockings_queryset.exists)()
-        return result
+    
     
     async def send_new_contact(self, destination_user, datetime, room_id):
         destination_user_profile = await sync_to_async(self.get_user_profile)(destination_user)  
@@ -476,4 +539,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
         new_status = get_reverse_dict(dict(OnlineStatus.status_choices))[status]
         online_status_obj.status = new_status
         online_status_obj.save()
+       
          
+    def get_block_status(self, target_user):
+        block_status = dict()
+        block_status['blocked_you'] = self.blocked_you(target_user)
+        block_status['is_blocked'] = self.is_blocked(target_user)
+        return block_status
+    
+    def blocked_you(self, target_user):  
+        blockings_queryset = target_user.blockings.filter(username=self.username)
+        return blockings_queryset.exists()
+    
+    def is_blocked(self, target_user):
+        blockers_queryset = target_user.blockers.filter(username=self.username)
+        return blockers_queryset.exists()
+
+    def block_user(self, target_user):
+        try:
+            Block.objects.create(from_user=self.user, to_user=target_user)
+            signals.block_user.send(
+                sender=BlockViewSet,
+                current_user=self.user,
+                target_user=target_user,
+            )
+        except:
+            print(f"\nError while block. (from_user={self.username} to_user={target_user.username})\n")
+    
+    def unblock_user(self, target_user):
+        Block.objects.filter(from_user=self.user, to_user=target_user).delete()

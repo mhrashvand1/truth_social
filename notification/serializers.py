@@ -95,12 +95,9 @@ class BellDisableSerializer(serializers.Serializer):
     def perform_bell_disable(self):
         current_user = self.context['request'].user
         target_user = self.validated_data['username']
-        try:
-            Bell.objects.get(
-                from_user=current_user, to_user=target_user
-            ).delete()
-        except:
-            pass
+        Bell.objects.filter(
+            from_user=current_user, to_user=target_user
+        ).delete()
         return f"{current_user.username} disables the bell of {target_user.username} successfully."
 
 

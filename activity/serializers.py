@@ -73,12 +73,9 @@ class UnFollowSerializer(serializers.Serializer):
     def perform_unfollow(self):
         current_user = self.context['request'].user
         target_user = self.validated_data['username']
-        try:
-            Follow.objects.get(
-                from_user=current_user, to_user=target_user
-            ).delete()
-        except:
-            pass
+        Follow.objects.filter(
+            from_user=current_user, to_user=target_user
+        ).delete()
         return f"{current_user.username} unfollows {target_user.username} successfully."
 
 
@@ -139,12 +136,9 @@ class UnBlockSerializer(serializers.Serializer):
     def perform_unblock(self):
         current_user = self.context['request'].user
         target_user = self.validated_data['username']
-        try:
-            Block.objects.get(
-                from_user=current_user, to_user=target_user
-            ).delete()
-        except:
-            pass
+        Block.objects.filter(
+            from_user=current_user, to_user=target_user
+        ).delete()
         return f"{current_user.username} unblocks {target_user.username} successfully."
 
 

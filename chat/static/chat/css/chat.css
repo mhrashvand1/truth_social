@@ -289,3 +289,16 @@ main footer{
 	display: block;
 	color: rgb(255, 255, 255);
 }
+.block-status{
+	display: block;
+}
+.block-status span{
+	height: 21px;
+	color: #b80707;
+	font-weight: 600;
+	cursor: pointer;
+}
+.block-status span:hover{
+	background-color: #aeb6c3c4;
+	border-radius: 5px;
+}
