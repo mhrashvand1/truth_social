@@ -32,7 +32,10 @@ source venv/bin/activate
 pip install -r requirements.txt   
 
 ``` 
-
+run postgress and redis:   
+``` bash
+docker-compose -f docker-compose.dev.yml up -d  
+```
 create test user:   
 You can alse create user by signing up (Go to `swagger/` or `redoc/` to see the corresponding endpoints.)
 ``` bash 
