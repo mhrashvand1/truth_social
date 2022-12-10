@@ -90,7 +90,9 @@ class NotificationViewSet(
         return NotificationSerializer
     
     def get_queryset(self):
-        return Notification.objects.filter(to=self.request.user)
+        if self.request.user.is_authenticated:
+            return Notification.objects.filter(to=self.request.user)
+        return Notification.objects.none()
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

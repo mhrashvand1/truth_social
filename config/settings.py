@@ -209,6 +209,7 @@ DJOSER = {
         "user": "account.serializers.UserSerializer",
         "current_user":"account.serializers.CurrentUserSerializer",
         'password_reset': 'account.serializers.SendEmailResetSerializer',
+        'username_reset': 'account.serializers.SendEmailResetSerializer',
         'activation': 'account.serializers.ActivationSerializer',
         'set_username': 'account.serializers.SetUsernameSerializer',
         'username_reset_confirm': 'account.serializers.UsernameResetConfirmSerializer',
