@@ -24,7 +24,6 @@ INTERNAL_IPS = [
 # Application definition
 
 DEFAULT_APPS = [
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
