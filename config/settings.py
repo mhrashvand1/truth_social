@@ -24,6 +24,7 @@ INTERNAL_IPS = [
 # Application definition
 
 DEFAULT_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -53,7 +54,7 @@ PROJECT_APPS = [
     'notification.apps.NotificationConfig',
 ]
 
-INSTALLED_APPS = THIRD_PARTY_PACKAGES + DEFAULT_APPS + PROJECT_APPS
+INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_PACKAGES + PROJECT_APPS
 
 
 MIDDLEWARE = [

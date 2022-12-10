@@ -1,7 +1,7 @@
 django
 djangorestframework
-channels==3.0.5
-channels-redis==3.4.1
+channels[daphne]
+channels-redis
 django-filter
 psycopg2-binary
 django-decouple
