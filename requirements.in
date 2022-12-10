@@ -1,8 +1,7 @@
 django
 djangorestframework
-channels
-channels-redis
-# django-channels-jwt-auth-middleware
+channels==3.0.5
+channels-redis==3.4.1
 django-filter
 psycopg2-binary
 django-decouple
@@ -11,12 +10,12 @@ djangorestframework-simplejwt
 Pillow
 drf-nested-routers
 requests
-pyotp
 django-cleanup
 drf-yasg
-daphne
-##
-django-debug-toolbar
+# django-channels-jwt-auth-middleware
+# pyotp
+# daphne
+# django-debug-toolbar
 # django-crontab
 # jdatetime
 # gunicorn 

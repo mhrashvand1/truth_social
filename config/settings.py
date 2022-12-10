@@ -34,7 +34,6 @@ DEFAULT_APPS = [
 
 THIRD_PARTY_PACKAGES = [
     'channels',
-    'daphne',
     "django_filters",
     "rest_framework",
     "djoser",
