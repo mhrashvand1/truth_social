@@ -32,7 +32,7 @@ source venv/bin/activate
 pip install -r requirements.txt   
 
 ``` 
-run postgress and redis:   
+run postgres and redis:   
 ``` bash
 docker-compose -f docker-compose.dev.yml up -d  
 ```
