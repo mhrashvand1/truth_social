@@ -36,6 +36,12 @@ run postgres and redis:
 ``` bash
 docker-compose -f docker-compose.dev.yml up -d  
 ```
+
+migrate:  
+``` bash
+./manage.py migrate
+```
+
 create test user:   
 You can alse create user by signing up (Go to `swagger/` or `redoc/` to see the corresponding endpoints.)
 ``` bash 
