@@ -15,12 +15,6 @@ urlpatterns = [
     path('chat/', include('chat.urls')),
     path('activity/', include('activity.urls')),
     path('notification/', include('notification.urls')),
-
-    # session base login, logout 
-    # using for django channels authentication
-    # using for drf api if session authentication backend was active
-    path('chat/', include('rest_framework.urls')),
-
     # swagger urls
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
@@ -30,4 +24,4 @@ urlpatterns = [
 if settings.DEBUG:
     media_urls = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += media_urls
-    urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))
+    # urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))
