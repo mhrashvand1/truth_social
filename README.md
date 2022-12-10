@@ -1,4 +1,4 @@
-Hello everybody, as mentioned in the about section,the truth social is a social network similar to Twitter with a chat section implemented by django channels.  
+Hello everybody, as mentioned in the about section, the truth social is a social network similar to Twitter with a chat section implemented by django channels.  
 (Currently, only the chat part is fully implemented and can be tested.)
 
 ## Navigation
